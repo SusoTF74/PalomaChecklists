@@ -117,6 +117,9 @@ function save(){
   DB_REF.set(S.db).catch(e=>console.error('Firebase save error:',e));
 }
 
+// Firebase guarda arrays vacíos como null — esta función lo corrige
+function toArr(v){if(!v)return[];if(Array.isArray(v))return v;return Object.values(v);}
+
 function startSync(){
   DB_REF.on('value', snapshot=>{
     const data=snapshot.val();
@@ -124,23 +127,24 @@ function startSync(){
       S.db=initDB();
       save();
     }else{
-      // Migrate missing fields
       if(!data.julia)data.julia={pts:0,tasks:[],col:{}};
       if(!data.jesus)data.jesus={pts:0,tasks:[],col:{}};
-      if(!data.cards)data.cards=[];
-      if(!data.trades)data.trades=[];
+      // Convertir null / objetos de Firebase a arrays correctamente
+      data.julia.tasks = toArr(data.julia.tasks);
+      data.jesus.tasks = toArr(data.jesus.tasks);
+      data.julia.col   = data.julia.col   || {};
+      data.jesus.col   = data.jesus.col   || {};
+      data.julia.pts   = data.julia.pts   || 0;
+      data.jesus.pts   = data.jesus.pts   || 0;
+      data.cards  = toArr(data.cards);
+      data.trades = toArr(data.trades);
       if(!data.sounds)data.sounds={};
-      // Arrays from Firebase come as objects, convert back
-      if(data.julia.tasks&&!Array.isArray(data.julia.tasks))data.julia.tasks=Object.values(data.julia.tasks);
-      if(data.jesus.tasks&&!Array.isArray(data.jesus.tasks))data.jesus.tasks=Object.values(data.jesus.tasks);
-      if(data.cards&&!Array.isArray(data.cards))data.cards=Object.values(data.cards);
-      if(data.trades&&!Array.isArray(data.trades))data.trades=Object.values(data.trades);
-      // Check daily reset
+      // Reset diario
       const today=canaryDate();
       if(data.lastReset!==today){
         data.lastReset=today;
-        data.julia.tasks=(data.julia.tasks||[]).map(t=>({...t,done:false}));
-        data.jesus.tasks=(data.jesus.tasks||[]).map(t=>({...t,done:false}));
+        data.julia.tasks=data.julia.tasks.map(t=>({...t,done:false}));
+        data.jesus.tasks=data.jesus.tasks.map(t=>({...t,done:false}));
       }
       S.db=data;
     }
