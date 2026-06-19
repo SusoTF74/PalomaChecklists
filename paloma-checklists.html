@@ -266,7 +266,9 @@ function pageTienda(){
 function pageColeccion(){
   const col=ud().col||{},pool=S.db.cards;
   const owned=pool.filter(c=>(col[c.id]||0)>0).length;
-  const filtered=S.rarFilt==='all'?pool:pool.filter(c=>c.rarity===S.rarFilt);
+  const RAR_ORDER=['comun','poco_comun','rara','epica','legendaria'];
+  const sorted=[...pool].sort((a,b)=>RAR_ORDER.indexOf(a.rarity)-RAR_ORDER.indexOf(b.rarity));
+  const filtered=S.rarFilt==='all'?sorted:sorted.filter(c=>c.rarity===S.rarFilt);
   const filters=[['all','Todas','#f0d6ff']].concat(Object.entries(R).map(([k,v])=>[k,v.lbl,v.tc])).map(([k,l,c])=>'<button onclick="S.rarFilt=\''+k+'\';render()" style="border:1px solid '+(S.rarFilt===k?c:'#ff69b433')+';border-radius:20px;background:'+(S.rarFilt===k?c+'22':'transparent')+';color:'+(S.rarFilt===k?c:'#888')+';padding:4px 10px;cursor:pointer;font-family:\'Press Start 2P\',monospace;font-size:6px">'+l+'</button>').join('');
   let grid='';
   if(pool.length===0){
