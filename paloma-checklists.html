@@ -216,12 +216,13 @@ function cardHTMLSm(card,qty){
   const cls=leg?'legend-card ':'';
   const icon=leg?'⭐':card.rarity==='epica'?'💜':card.rarity==='rara'?'💚':card.rarity==='poco_comun'?'💙':'⬜';
   const qb=qty>1?'<div style="position:absolute;top:-6px;right:-6px;background:#ff69b4;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:bold;color:white;z-index:2">x'+qty+'</div>':'';
-  const img=card.image?'<img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover;image-rendering:pixelated" onerror="this.style.display='none'">':'<span style="font-size:24px;opacity:.35">'+icon+'</span>';
+  const imgTag=card.image?('<img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover;image-rendering:pixelated">'):'<span style="font-size:24px;opacity:.35">'+icon+'</span>';
   return '<div class="'+cls+'" style="width:100%;border:2px solid '+(leg?'#ff69b4':r.b)+';border-radius:8px;background:'+r.bg+';padding:5px;position:relative;box-shadow:'+shadow+'">'+qb
     +'<div class="pf" style="font-size:5px;color:'+r.tc+';text-align:center;margin-bottom:3px;line-height:1.5;min-height:12px;word-break:break-word">'+esc(card.title||'???')+'</div>'
-    +'<div style="width:100%;aspect-ratio:1;background:#070712;border-radius:4px;margin-bottom:3px;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid '+r.b+'33">'+img+'</div>'
+    +'<div style="width:100%;aspect-ratio:1;background:#070712;border-radius:4px;margin-bottom:3px;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid '+r.b+'33">'+imgTag+'</div>'
     +'<div class="pf" style="text-align:center;font-size:4px;color:'+r.tc+';text-transform:uppercase">'+r.lbl+'</div></div>';
 }
+
 function mysteryCard(card){
   const r=R[card.rarity]||R.comun;
   return '<div style="width:148px;flex-shrink:0;border:3px solid '+r.b+'44;border-radius:8px;background:#0a0a14;padding:9px;display:flex;flex-direction:column;gap:5px">'
