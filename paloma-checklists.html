@@ -4,11 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <meta name="theme-color" content="#ff69b4">
-<meta name="apple-mobile-web-app-title" content="Paloma">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="https://github.com/SusoTF74/PalomaChecklists/blob/main/Images/icono.png?raw=true">
-<link rel="icon" href="https://github.com/SusoTF74/PalomaChecklists/blob/main/Images/icono.png?raw=true">
 <title>🕊️ Paloma Checklists</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -286,7 +281,7 @@ function pageColeccion(){
       return '<div style="cursor:pointer" onclick="S.inspect='+inspectData+';render()">'+cardHTML(c,q>1?q:0,false,false)+'</div>';
     }).join('');
   }
-  let html='<div style="max-width:820px"><div class="pf" style="font-size:11px;color:#ff69b4;margin-bottom:4px">🃏 Mi Colección</div><div class="pf" style="font-size:7px;color:#666;margin-bottom:14px">'+owned+'/'+pool.length+' únicas</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px">'+filters+'</div><div style="display:flex;flex-wrap:wrap;gap:10px">'+grid+'</div>';
+  let html='<div style="max-width:820px"><div class="pf" style="font-size:11px;color:#ff69b4;margin-bottom:4px">🃏 Mi Colección</div><div class="pf" style="font-size:7px;color:#666;margin-bottom:14px">'+owned+'/'+pool.length+' únicas</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px">'+filters+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px">'+grid+'</div>';
   if(S.inspect){
     const c=S.inspect,q=(col[c.id]||0);
     html+='<div class="overlay" onclick="S.inspect=null;render()"><div onclick="event.stopPropagation()" style="display:flex;flex-direction:column;align-items:center;gap:16px"><div style="transform:scale(1.7);transform-origin:center top;margin-bottom:80px">'+cardHTML(c)+'</div><div class="pf" style="font-size:7px;color:#888">'+q+' en tu colección</div><button class="btn-o" onclick="S.inspect=null;render()">Cerrar</button></div></div>';
