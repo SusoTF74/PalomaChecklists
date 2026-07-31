@@ -224,13 +224,14 @@ function doSaveSounds(){
 // ─── NOTIFICATIONS (FCM) ───────────────────────────────────────────────────
 async function requestNotifPermission(){
   try{
-    const permission=await Notification.requestPermission();
+    const permission='Notification' in window?await Notification.requestPermission():'denied';
     if(permission==='granted'){
       const swReg=await navigator.serviceWorker.register('firebase-messaging-sw.js');
       const messaging=firebase.messaging();
       const token=await messaging.getToken({vapidKey:'BP5pPRzMCDGeKPD6WmyQkcgf0eU88cJOsApsFe-fEM8YaRh_z1Vr22X2TbxSg5a2d8wMmPAP2jzOwM7yZCFgcEg',serviceWorkerRegistration:swReg});
       if(token&&S.user&&S.user!=='admin'){
         await TOKENS_REF.child(S.user).set(token);
+        console.log('FCM token saved for',S.user);
       }
     }
     render();
@@ -516,8 +517,8 @@ function togglePw(){const i=document.getElementById('lpw');i.type=i.type==='pass
 function doLogin(){
   const pw=document.getElementById('lpw').value;
   const lerr=document.getElementById('lerr');
-  if(pw===USERS.julia.pw){S.user='julia';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();return}
-  if(pw===USERS.jesus.pw){S.user='jesus';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();return}
+  if(pw===USERS.julia.pw){S.user='julia';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();setTimeout(requestNotifPermission,1500);return}
+  if(pw===USERS.jesus.pw){S.user='jesus';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();setTimeout(requestNotifPermission,1500);return}
   if(pw===APW){S.user='admin';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();return}
   if(lerr){lerr.textContent='Contraseña incorrecta 💔';lerr.style.display='block'}
 }
