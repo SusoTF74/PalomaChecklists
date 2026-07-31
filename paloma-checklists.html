@@ -238,13 +238,16 @@ OneSignalDeferred.push(async function(OneSignal){
 });
 
 async function requestNotifPermission(){
-  if(!osReady||typeof OneSignal==='undefined')return;
   try{
-    await OneSignal.Notifications.requestPermission();
-    const subId=OneSignal.User.PushSubscription.id;
-    if(subId&&S.user&&S.user!=='admin'){TOKENS_REF.child(S.user).set(subId);}
+    const permission=await Notification.requestPermission();
+    if(permission==='granted'){
+      if(osReady&&typeof OneSignal!=='undefined'){
+        const subId=OneSignal.User.PushSubscription.id;
+        if(subId&&S.user&&S.user!=='admin'){TOKENS_REF.child(S.user).set(subId);}
+      }
+    }
     render();
-  }catch(e){}
+  }catch(e){console.error(e);}
 }
 
 async function doToque(){
