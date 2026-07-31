@@ -221,33 +221,21 @@ function doSaveSounds(){
   flashAdmin('✅ Sonidos guardados');
 }
 
-// ─── NOTIFICATIONS ─────────────────────────────────────────────────────────
-let osReady=false;
-window.OneSignalDeferred=window.OneSignalDeferred||[];
-OneSignalDeferred.push(async function(OneSignal){
-  await OneSignal.init({
-    appId:OS_APP_ID,
-    notifyButton:{enable:false},
-    serviceWorkerPath:'OneSignalSDKWorker.js'
-  });
-  osReady=true;
-  OneSignal.User.PushSubscription.addEventListener('change',function(event){
-    const id=event.current.id;
-    if(id&&S.user&&S.user!=='admin'){TOKENS_REF.child(S.user).set(id);}
-  });
-});
+// ─── NOTIFICATIONS (FCM) ───────────────────────────────────────────────────
+const messaging=firebase.messaging();
 
 async function requestNotifPermission(){
   try{
     const permission=await Notification.requestPermission();
     if(permission==='granted'){
-      if(osReady&&typeof OneSignal!=='undefined'){
-        const subId=OneSignal.User.PushSubscription.id;
-        if(subId&&S.user&&S.user!=='admin'){TOKENS_REF.child(S.user).set(subId);}
+      const swReg=await navigator.serviceWorker.register('firebase-messaging-sw.js');
+      const token=await messaging.getToken({vapidKey:'BP5pPRzMCDGeKPD6WmyQkcgf0eU88cJOsApsFe-fEM8YaRh_z1Vr22X2TbxSg5a2d8wMmPAP2jzOwM7yZCFgcEg',serviceWorkerRegistration:swReg});
+      if(token&&S.user&&S.user!=='admin'){
+        await TOKENS_REF.child(S.user).set(token);
       }
     }
     render();
-  }catch(e){console.error(e);}
+  }catch(e){console.error('FCM error:',e);}
 }
 
 async function doToque(){
@@ -259,23 +247,14 @@ async function doToque(){
   S.db.toques[S.user]=now;
   save();render();
   const snap=await TOKENS_REF.child(other()).once('value');
-  const subId=snap.val();
-  if(!subId){
+  const token=snap.val();
+  if(!token){
     alert(USERS[other()].name+' aún no ha activado las notificaciones. Dile que abra la app primero!');
     return;
   }
   try{
-    await fetch('https://onesignal.com/api/v1/notifications',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Basic '+OS_API_KEY},
-      body:JSON.stringify({
-        app_id:OS_APP_ID,
-        include_subscription_ids:[subId],
-        headings:{en:'🕊️ Paloma Checklists'},
-        contents:{en:USERS[S.user].name+' te ha dado un toque, ¡Completa tus tareas antes de que acabe el día! 🌸'}
-      })
-    });
-  }catch(e){console.error('Notification error:',e);}
+    await TOKENS_REF.child('__toques').push({from:S.user,to:other(),token:token,ts:Date.now()});
+  }catch(e){console.error('Toque error:',e);}
 }
 
 // ─── CARD RENDER ───────────────────────────────────────────────────────────
