@@ -252,7 +252,13 @@ async function doToque(){
     return;
   }
   try{
-    await TOKENS_REF.child('__toques').push({from:S.user,to:other(),token:token,ts:Date.now()});
+    const res=await fetch('https://paloma-toque.jesuselm1407.workers.dev/',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({token:token,fromName:USERS[S.user].name})
+    });
+    const data=await res.json();
+    if(data.error){console.error('Worker error:',data.error);}
   }catch(e){console.error('Toque error:',e);}
 }
 
