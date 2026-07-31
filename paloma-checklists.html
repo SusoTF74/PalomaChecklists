@@ -155,17 +155,46 @@ function startSync(){
       S.db=data;
     }
     if(S.loading){S.loading=false;}
+    preloadSounds();
     render();
   });
 }
 
 // ─── SOUNDS ────────────────────────────────────────────────────────────────
 let bgAudio=null;
+const audioCache={};
+
+function preloadSounds(){
+  if(!S.db||!S.db.sounds)return;
+  Object.entries(S.db.sounds).forEach(([key,url])=>{
+    if(!url)return;
+    try{
+      if(!audioCache[key]||audioCache[key].src!==url){
+        const a=new Audio();
+        a.preload='auto';
+        a.src=url;
+        audioCache[key]=a;
+      }
+    }catch(e){}
+  });
+}
+
 function playSound(key){
   if(S.muted)return;
   const url=(S.db.sounds||{})[key];
   if(!url)return;
-  try{const a=new Audio(url);a.volume=0.7;a.play().catch(()=>{});}catch(e){}
+  try{
+    const cached=audioCache[key];
+    if(cached&&cached.readyState>=2){
+      const a=cached.cloneNode();
+      a.volume=0.7;
+      a.play().catch(()=>{});
+    }else{
+      const a=new Audio(url);
+      a.volume=0.7;
+      a.play().catch(()=>{});
+    }
+  }catch(e){}
 }
 function toggleMute(){
   S.muted=!S.muted;
@@ -187,7 +216,7 @@ function testSound(key){
 function doSaveSounds(){
   const s={};
   SND_DEFS.forEach(([k])=>{const el=document.getElementById('snd-'+k);s[k]=el?el.value.trim():'';});
-  S.db.sounds=s;save();startBgMusic();
+  S.db.sounds=s;save();startBgMusic();preloadSounds();
   flashAdmin('✅ Sonidos guardados');
 }
 
@@ -439,8 +468,8 @@ function togglePw(){const i=document.getElementById('lpw');i.type=i.type==='pass
 function doLogin(){
   const pw=document.getElementById('lpw').value;
   const lerr=document.getElementById('lerr');
-  if(pw===USERS.julia.pw){S.user='julia';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();return}
-  if(pw===USERS.jesus.pw){S.user='jesus';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();return}
+  if(pw===USERS.julia.pw){S.user='julia';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();return}
+  if(pw===USERS.jesus.pw){S.user='jesus';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();return}
   if(pw===APW){S.user='admin';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();return}
   if(lerr){lerr.textContent='Contraseña incorrecta 💔';lerr.style.display='block'}
 }
