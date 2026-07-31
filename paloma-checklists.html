@@ -82,7 +82,7 @@ const SOBRES={
   raro:{lbl:'Sobre Raro',cost:200,n:4,icon:'💠',bc:'#38bdf8',gr:'linear-gradient(135deg,#0369a1,#38bdf8)',probs:{comun:20,poco_comun:30,rara:30,epica:15,legendaria:5}},
   mega:{lbl:'Megasobre ✨',cost:300,n:5,icon:'🌟',bc:'#fbbf24',gr:'linear-gradient(135deg,#92400e,#fbbf24)',probs:{comun:15,poco_comun:20,rara:25,epica:25,legendaria:15},epic:true}
 };
-const SND_DEFS=[['bgMusic','🎵 Música de fondo (bucle)'],['addTask','✅ Añadir tarea'],['completeTask','✓ Completar tarea'],['requestTrade','📤 Enviar intercambio'],['acceptTrade','🤝 Aceptar intercambio'],['openPack','📦 Abrir sobre'],['comun','⬜ Revelar carta Común'],['poco_comun','💙 Revelar carta Poco Común'],['rara','💚 Revelar carta Rara'],['epica','💜 Revelar carta Épica'],['legendaria','⭐ Revelar carta Legendaria']];
+const SND_DEFS=[['bgMusic','🎵 Música de fondo (bucle)'],['addTask','✅ Añadir tarea'],['completeTask','✓ Completar tarea'],['requestTrade','📤 Enviar intercambio'],['acceptTrade','🤝 Aceptar intercambio'],['openPack','📦 Abrir sobre'],['comun','⬜ Revelar carta Común'],['poco_comun','💙 Revelar carta Poco Común'],['rara','💚 Revelar carta Rara'],['epica','💜 Revelar carta Épica'],['legendaria','⭐ Revelar carta Legendaria'],['toque','🔔 Recibir un toque']];
 
 // ─── STATE ─────────────────────────────────────────────────────────────────
 let S={user:null,page:'checklist',db:null,timer:'--:--:--',selPts:10,pack:null,inspect:null,myCard:null,thCard:null,rarFilt:'all',adminEditId:null,showImport:false,adminRarity:'comun',muted:false,loading:true};
@@ -422,8 +422,11 @@ function pageIntercambios(){
 
 function pageOtro(){
   const od=S.db[other()],oName=USERS[other()].name,tasks=od.tasks||[],done=tasks.filter(t=>t.done);
+  const otherPts=od.pts||0;
+  const otherOwned=S.db.cards.filter(c=>(od.col||{})[c.id]>0).length;
   const prog=tasks.length?Math.round(done.length/tasks.length*100):0;
   let html='<div style="max-width:580px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><div class="pf" style="font-size:11px;color:#ff69b4">💌 '+oName+'</div><div style="text-align:right"><div class="pf" style="font-size:6px;color:#555;margin-bottom:3px">Reinicia en</div><div class="pf timer-el" style="font-size:10px;color:#fbbf24">'+S.timer+'</div></div></div>';
+  html+='<div style="display:flex;gap:10px;margin-bottom:14px"><div style="background:#130820;border:1px solid #fbbf2422;border-radius:10px;padding:8px 12px;flex:1;text-align:center"><div class="pf" style="font-size:6px;color:#666;margin-bottom:3px">Puntos</div><div class="pf" style="font-size:13px;color:#fbbf24">'+otherPts+'</div></div><div style="background:#130820;border:1px solid #c084fc22;border-radius:10px;padding:8px 12px;flex:1;text-align:center"><div class="pf" style="font-size:6px;color:#666;margin-bottom:3px">Cartas</div><div class="pf" style="font-size:13px;color:#c084fc">'+otherOwned+'/'+S.db.cards.length+'</div></div></div>';
   if(tasks.length>0){
     html+='<div style="background:#130820;border:1px solid #ff69b422;border-radius:10px;padding:12px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span class="pf" style="font-size:7px;color:#c084fc">'+done.length+'/'+tasks.length+' hechas</span><span class="pf" style="font-size:7px;color:#fbbf24">⭐ '+done.reduce((s,t)=>s+t.pts,0)+'/'+tasks.reduce((s,t)=>s+t.pts,0)+'</span></div><div style="background:#07070f;border-radius:20px;height:7px;overflow:hidden"><div style="width:'+prog+'%;height:100%;background:linear-gradient(90deg,#ff69b4,#c084fc);border-radius:20px;transition:width .4s"></div></div></div>';
   }
@@ -485,7 +488,7 @@ function pageMain(){
   else if(S.page==='otro')pageContent=pageOtro();
   else if(S.page==='album')pageContent=pageAlbum();
   const navSide=NAV.map(n=>'<button class="ns '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:15px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
-  const navBot=NAV.map(n=>'<button class="nm '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:18px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
+  const navBot=NAV.map(n=>'<button class="nm '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:24px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
   return '<div style="min-height:100vh"><header style="background:#0f0620;border-bottom:2px solid #ff69b422;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100"><div><div class="pf" style="font-size:8px;color:#ff69b4;line-height:1.9">🕊️ Paloma</div><div class="pf" style="font-size:5px;color:#c084fc">Checklists</div></div><div style="display:flex;align-items:center;gap:9px"><div style="background:#1a0a2e;border:1px solid #fbbf2444;border-radius:20px;padding:4px 11px"><span class="pf" style="font-size:9px;color:#fbbf24">⭐ '+ud().pts+'</span></div><span class="pf" style="font-size:7px;color:'+uInfo.c+'">'+uInfo.name+'</span>'+muteBtn+'<button onclick="S.user=null;S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;if(bgAudio){bgAudio.pause();bgAudio=null;}render()" style="background:none;border:1px solid #ff69b433;border-radius:6px;color:#ff69b4;cursor:pointer;padding:4px 8px;font-size:13px">✕</button></div></header><div style="display:flex"><div class="snav" style="width:186px;background:#0c0618;border-right:1px solid #ff69b411;padding:12px 8px;display:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto;flex-shrink:0">'+navSide+'</div><main style="flex:1;padding:14px;overflow-y:auto;min-height:calc(100vh - 52px)" class="mpb">'+pageContent+'</main></div><nav class="bnav" style="position:fixed;bottom:0;left:0;right:0;background:#0c0618;border-top:1px solid #ff69b422;z-index:100;display:none">'+navBot+'</nav></div>';
 }
 
