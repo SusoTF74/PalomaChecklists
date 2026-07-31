@@ -11,6 +11,7 @@
 <link rel="icon" href="https://github.com/SusoTF74/PalomaChecklists/blob/main/Images/icono.png?raw=true">
 <link rel="manifest" href="manifest.json">
 <title>🕊️ Paloma Checklists</title>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -60,6 +61,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const DB_REF = db.ref('gamedata');
+const TOKENS_REF = db.ref('tokens');
+const OS_APP_ID = 'd6a959a3-decc-4f48-a695-fa46e51db7b7';
+const OS_API_KEY = 'sytn6uakpuvxnlvdauat4e757';
 
 // ─── CONSTANTS ─────────────────────────────────────────────────────────────
 const USERS={julia:{pw:'Paloma1997',name:'Julia',c:'#ff69b4'},jesus:{pw:'Paloma2003',name:'Jesús',c:'#a78bfa'}};
@@ -114,7 +118,7 @@ function rollPack(type,pool){
   }
   return drawn;
 }
-function initDB(){return{lastReset:canaryDate(),julia:{pts:0,tasks:[],col:{}},jesus:{pts:0,tasks:[],col:{}},cards:[],trades:[],sounds:{}}}
+function initDB(){return{lastReset:canaryDate(),julia:{pts:0,tasks:[],col:{}},jesus:{pts:0,tasks:[],col:{}},cards:[],trades:[],sounds:{},toques:{}}}
 function ud(){return S.db[S.user]}
 function other(){return S.user==='julia'?'jesus':'julia'}
 
@@ -122,8 +126,6 @@ function other(){return S.user==='julia'?'jesus':'julia'}
 function save(){
   DB_REF.set(S.db).catch(e=>console.error('Firebase save error:',e));
 }
-
-// Firebase guarda arrays vacíos como null — esta función lo corrige
 function toArr(v){if(!v)return[];if(Array.isArray(v))return v;return Object.values(v);}
 
 function startSync(){
@@ -135,7 +137,6 @@ function startSync(){
     }else{
       if(!data.julia)data.julia={pts:0,tasks:[],col:{}};
       if(!data.jesus)data.jesus={pts:0,tasks:[],col:{}};
-      // Convertir null / objetos de Firebase a arrays correctamente
       data.julia.tasks = toArr(data.julia.tasks);
       data.jesus.tasks = toArr(data.jesus.tasks);
       data.julia.col   = data.julia.col   || {};
@@ -145,7 +146,7 @@ function startSync(){
       data.cards  = toArr(data.cards);
       data.trades = toArr(data.trades);
       if(!data.sounds)data.sounds={};
-      // Reset diario
+      if(!data.toques)data.toques={};
       const today=canaryDate();
       if(data.lastReset!==today){
         data.lastReset=today;
@@ -220,6 +221,59 @@ function doSaveSounds(){
   flashAdmin('✅ Sonidos guardados');
 }
 
+// ─── NOTIFICATIONS ─────────────────────────────────────────────────────────
+let osReady=false;
+window.OneSignalDeferred=window.OneSignalDeferred||[];
+OneSignalDeferred.push(async function(OneSignal){
+  await OneSignal.init({
+    appId:OS_APP_ID,
+    notifyButton:{enable:false},
+    serviceWorkerPath:'OneSignalSDKWorker.js'
+  });
+  osReady=true;
+  OneSignal.User.PushSubscription.addEventListener('change',function(event){
+    const id=event.current.id;
+    if(id&&S.user&&S.user!=='admin'){TOKENS_REF.child(S.user).set(id);}
+  });
+});
+
+async function requestNotifPermission(){
+  if(!osReady||typeof OneSignal==='undefined')return;
+  try{
+    await OneSignal.Notifications.requestPermission();
+    const subId=OneSignal.User.PushSubscription.id;
+    if(subId&&S.user&&S.user!=='admin'){TOKENS_REF.child(S.user).set(subId);}
+  }catch(e){}
+}
+
+async function doToque(){
+  const now=Date.now();
+  const toques=S.db.toques||{};
+  const last=toques[S.user]||0;
+  if(now-last<7200000)return;
+  if(!S.db.toques)S.db.toques={};
+  S.db.toques[S.user]=now;
+  save();render();
+  const snap=await TOKENS_REF.child(other()).once('value');
+  const subId=snap.val();
+  if(!subId){
+    alert(USERS[other()].name+' aún no ha activado las notificaciones. Dile que abra la app primero!');
+    return;
+  }
+  try{
+    await fetch('https://onesignal.com/api/v1/notifications',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Basic '+OS_API_KEY},
+      body:JSON.stringify({
+        app_id:OS_APP_ID,
+        include_subscription_ids:[subId],
+        headings:{en:'🕊️ Paloma Checklists'},
+        contents:{en:USERS[S.user].name+' te ha dado un toque, ¡Completa tus tareas antes de que acabe el día! 🌸'}
+      })
+    });
+  }catch(e){console.error('Notification error:',e);}
+}
+
 // ─── CARD RENDER ───────────────────────────────────────────────────────────
 function cardHTML(card,qty,sm,flip){
   if(!card)return'';
@@ -257,7 +311,6 @@ function cardHTMLSm(card,qty){
     +'<div style="width:100%;aspect-ratio:1;background:#070712;border-radius:4px;margin-bottom:3px;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid '+r.b+'33">'+imgTag+'</div>'
     +'<div class="pf" style="text-align:center;font-size:4px;color:'+r.tc+';text-transform:uppercase">'+r.lbl+'</div></div>';
 }
-
 function mysteryCard(card){
   const r=R[card.rarity]||R.comun;
   return '<div style="width:148px;flex-shrink:0;border:3px solid '+r.b+'44;border-radius:8px;background:#0a0a14;padding:9px;display:flex;flex-direction:column;gap:5px">'
@@ -396,11 +449,17 @@ function pageOtro(){
       html+='<div style="display:flex;align-items:center;gap:9px;background:'+(t.done?'#091409':'#130820')+';border:1px solid '+(t.done?'#4ade8033':'#ff69b422')+';border-radius:10px;padding:9px 11px;margin-bottom:7px"><div style="width:22px;height:22px;border-radius:4px;flex-shrink:0;border:2px solid '+(t.done?'#4ade80':'#ff69b4')+';background:'+(t.done?'#4ade80':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#0d0618;font-weight:bold">'+(t.done?'✓':'')+'</div><span style="flex:1;font-size:13px;color:'+(t.done?'#6b7280':'#f0d6ff')+';text-decoration:'+(t.done?'line-through':'none')+'">'+esc(t.title)+'</span><span class="pf" style="font-size:7px;padding:3px 7px;background:#fbbf2422;border:1px solid #fbbf2444;border-radius:20px;color:#fbbf24;flex-shrink:0">⭐'+t.pts+'</span></div>';
     });
   }
+  const now=Date.now(),toques=S.db.toques||{},last=toques[S.user]||0,cd=7200000;
+  const canToque=(now-last)>=cd;
+  const rem=cd-(now-last),rh=Math.floor(rem/3600000),rm=Math.floor((rem%3600000)/60000);
+  html+='<div style="margin-top:20px">'+(canToque
+    ?'<button class="btn" onclick="doToque()" style="width:100%;background:linear-gradient(135deg,#ff69b4,#f43f5e)">👆 Dar un toque a '+oName+'</button>'
+    :'<button class="btn" disabled style="width:100%">⏳ Próximo toque en '+rh+'h '+rm+'min</button>')+'</div>';
   html+='</div>';
   return html;
 }
 
-function pageAlbum(){return'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;gap:18px"><div style="font-size:60px">📚</div><div class="pf" style="font-size:14px;color:#ff69b4">Álbum</div><div class="pf" style="font-size:10px;color:#fbbf24;padding:8px 20px;background:#fbbf2411;border:1px solid #fbbf2444;border-radius:8px">COMING SOON</div><div class="pf" style="font-size:7px;color:#666;text-align:center;max-width:280px;line-height:1.9">Próximamente podrás organizar todas las cartas en un álbum especial ✨</div></div>'}
+function pageAlbum(){return'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;gap:18px"><div style="font-size:60px">📚</div><div class="pf" style="font-size:14px;color:#ff69b4">Álbum</div><div class="pf" style="font-size:10px;color:#fbbf24;padding:8px 20px;background:#fbbf2011;border:1px solid #fbbf2444;border-radius:8px">COMING SOON</div><div class="pf" style="font-size:7px;color:#666;text-align:center;max-width:280px;line-height:1.9">Próximamente podrás organizar todas las cartas en un álbum especial ✨</div></div>'}
 
 function pageAdmin(){
   const byR={};Object.keys(R).forEach(r=>{byR[r]=S.db.cards.filter(c=>c.rarity===r)});
@@ -468,8 +527,8 @@ function togglePw(){const i=document.getElementById('lpw');i.type=i.type==='pass
 function doLogin(){
   const pw=document.getElementById('lpw').value;
   const lerr=document.getElementById('lerr');
-  if(pw===USERS.julia.pw){S.user='julia';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();return}
-  if(pw===USERS.jesus.pw){S.user='jesus';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();return}
+  if(pw===USERS.julia.pw){S.user='julia';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();setTimeout(requestNotifPermission,1500);return}
+  if(pw===USERS.jesus.pw){S.user='jesus';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();setTimeout(requestNotifPermission,1500);return}
   if(pw===APW){S.user='admin';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();return}
   if(lerr){lerr.textContent='Contraseña incorrecta 💔';lerr.style.display='block'}
 }
@@ -481,7 +540,6 @@ function doAddTask(){
   S.db[S.user].tasks.push({id:uid(),title,pts:S.selPts,done:false});
   playSound('addTask');save();
 }
-
 function doToggleTask(id){
   const task=S.db[S.user].tasks.find(t=>t.id===id);
   if(!task)return;
@@ -490,14 +548,12 @@ function doToggleTask(id){
   S.db[S.user].pts=Math.max(0,S.db[S.user].pts+(task.done?task.pts:-task.pts));
   save();
 }
-
 function doDeleteTask(id){
   const task=S.db[S.user].tasks.find(t=>t.id===id);
   if(task&&task.done)S.db[S.user].pts=Math.max(0,S.db[S.user].pts-task.pts);
   S.db[S.user].tasks=S.db[S.user].tasks.filter(t=>t.id!==id);
   save();
 }
-
 function doBuyPack(type){
   const cfg=SOBRES[type];
   if(ud().pts<cfg.cost)return;
@@ -519,7 +575,6 @@ function doBuyPack(type){
     if(i>=S.pack.cards.length){clearInterval(iv);const ol=document.querySelector('.overlay>div');if(ol){const b=document.createElement('button');b.className='btn';b.style.width='100%';b.style.marginTop='8px';b.textContent='¡Genial! 🌸';b.onclick=()=>{S.pack=null;render()};ol.appendChild(b)}}
   },650);
 }
-
 function doTrade(tid,accept){
   const tr=S.db.trades.find(t=>t.id===tid);
   if(!tr||tr.status!=='pending')return;
@@ -532,7 +587,6 @@ function doTrade(tid,accept){
   }
   save();
 }
-
 function doSendTrade(){
   if(!S.myCard||!S.thCard)return;
   const myC=S.db[S.user].col||{},otC=S.db[other()].col||{};
@@ -542,14 +596,12 @@ function doSendTrade(){
   playSound('requestTrade');
   S.myCard=null;S.thCard=null;save();
 }
-
 function doAdminEdit(id){
   const c=S.db.cards.find(c=>c.id===id);if(!c)return;
   S.adminEditId=id;S.adminRarity=c.rarity;
   _afc={title:c.title,rarity:c.rarity,image:c.image||'',desc:c.description||''};
   render();window.scrollTo(0,0);
 }
-
 function doAdminSave(){
   const t=document.getElementById('af-title'),r=document.getElementById('af-rarity'),im=document.getElementById('af-image'),d=document.getElementById('af-desc');
   const title=t?t.value.trim():'';if(!title)return;
@@ -558,25 +610,21 @@ function doAdminSave(){
   S.adminEditId=null;S.adminRarity='comun';_afc={title:'',rarity:'comun',image:'',desc:''};save();render();
   flashAdmin('✅ Carta guardada');
 }
-
 function doAdminDelete(id){
   if(!confirm('¿Eliminar esta carta?'))return;
   S.db.cards=S.db.cards.filter(c=>c.id!==id);save();render();
 }
-
 function doReset(){
   if(!confirm('RESET TOTAL: borra puntos, tareas, colecciones y trades. Las cartas y sonidos se conservan.'))return;
   if(!confirm('¿Seguro? No se puede deshacer.'))return;
   const snd=S.db.sounds||{},cards=S.db.cards||[];
   S.db={...initDB(),cards,sounds:snd};save();render();
 }
-
 function doExport(){
   const b=new Blob([JSON.stringify(S.db,null,2)],{type:'application/json'});
   const u=URL.createObjectURL(b),a=document.createElement('a');
   a.href=u;a.download='paloma-backup.json';a.click();URL.revokeObjectURL(u);
 }
-
 function doImport(){
   const ta=document.getElementById('import-ta');if(!ta)return;
   try{
