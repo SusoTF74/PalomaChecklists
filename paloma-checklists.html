@@ -222,13 +222,12 @@ function doSaveSounds(){
 }
 
 // ─── NOTIFICATIONS (FCM) ───────────────────────────────────────────────────
-const messaging=firebase.messaging();
-
 async function requestNotifPermission(){
   try{
     const permission=await Notification.requestPermission();
     if(permission==='granted'){
       const swReg=await navigator.serviceWorker.register('firebase-messaging-sw.js');
+      const messaging=firebase.messaging();
       const token=await messaging.getToken({vapidKey:'BP5pPRzMCDGeKPD6WmyQkcgf0eU88cJOsApsFe-fEM8YaRh_z1Vr22X2TbxSg5a2d8wMmPAP2jzOwM7yZCFgcEg',serviceWorkerRegistration:swReg});
       if(token&&S.user&&S.user!=='admin'){
         await TOKENS_REF.child(S.user).set(token);
