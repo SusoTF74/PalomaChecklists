@@ -221,46 +221,42 @@ function doSaveSounds(){
   flashAdmin('✅ Sonidos guardados');
 }
 
-// ─── NOTIFICATIONS (FCM) ───────────────────────────────────────────────────
-async function requestNotifPermission(){
-  try{
-    const permission='Notification' in window?await Notification.requestPermission():'denied';
-    if(permission==='granted'){
-      const swReg=await navigator.serviceWorker.register('firebase-messaging-sw.js');
-      const messaging=firebase.messaging();
-      const token=await messaging.getToken({vapidKey:'BP5pPRzMCDGeKPD6WmyQkcgf0eU88cJOsApsFe-fEM8YaRh_z1Vr22X2TbxSg5a2d8wMmPAP2jzOwM7yZCFgcEg',serviceWorkerRegistration:swReg});
-      if(token&&S.user&&S.user!=='admin'){
-        await TOKENS_REF.child(S.user).set(token);
-        console.log('FCM token saved for',S.user);
-      }
-    }
-    render();
-  }catch(e){console.error('FCM error:',e);}
+// ─── NOTIFICACIONES (IN-APP) ─────────────────────────────────────────
+function showToqueNotification(fromName){
+  playSound('toque');
+  if('vibrate' in navigator)navigator.vibrate([300,100,300,100,300]);
+  const old=document.getElementById('toque-banner');
+  if(old)old.remove();
+  const b=document.createElement('div');
+  b.id='toque-banner';
+  b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:1000;background:linear-gradient(135deg,#ff69b4,#c084fc);padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 24px #ff69b466;animation:slideDown .3s ease-out;';
+  const msg=fromName+' te ha dado un toque!';
+  const sub='Completa tus tareas antes de que acabe el dia! ';
+  b.innerHTML='<div style="font-size:26px">&#128070;</div><div style="flex:1"><div class="pf" style="font-size:8px;color:white;margin-bottom:5px">'+msg+'</div><div class="pf" style="font-size:6px;color:rgba(255,255,255,.85)">'+sub+'</div></div><button onclick="document.getElementById(&quot;toque-banner&quot;).remove()" style="background:none;border:none;cursor:pointer;color:white;font-size:20px;padding:0 4px">&#215;</button>';
+  document.body.appendChild(b);
+  setTimeout(()=>{const el=document.getElementById('toque-banner');if(el)el.remove();},6000);
 }
 
-async function doToque(){
+function checkPendingPoke(){
+  if(!S.user||S.user==='admin'||!S.db)return;
+  const myPoke=(S.db.pokes||{})[S.user];
+  if(myPoke&&!myPoke.seen){
+    S.db.pokes[S.user]={...myPoke,seen:true};
+    save();
+    setTimeout(()=>showToqueNotification(USERS[myPoke.from].name),500);
+  }
+}
+
+function doToque(){
   const now=Date.now();
   const toques=S.db.toques||{};
   const last=toques[S.user]||0;
   if(now-last<7200000)return;
   if(!S.db.toques)S.db.toques={};
   S.db.toques[S.user]=now;
+  if(!S.db.pokes)S.db.pokes={};
+  S.db.pokes[other()]={from:S.user,ts:Date.now(),seen:false};
   save();render();
-  const snap=await TOKENS_REF.child(other()).once('value');
-  const token=snap.val();
-  if(!token){
-    alert(USERS[other()].name+' aún no ha activado las notificaciones. Dile que abra la app primero!');
-    return;
-  }
-  try{
-    const res=await fetch('https://paloma-toque.jesuselm1407.workers.dev/',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({token:token,fromName:USERS[S.user].name})
-    });
-    const data=await res.json();
-    if(data.error){console.error('Worker error:',data.error);}
-  }catch(e){console.error('Toque error:',e);}
 }
 
 // ─── CARD RENDER ───────────────────────────────────────────────────────────
@@ -481,7 +477,6 @@ function pageMain(){
   const uInfo=USERS[S.user];
   const hasBgMusic=!!(S.db.sounds||{}).bgMusic;
   const muteBtn=hasBgMusic?'<button id="mute-btn" onclick="toggleMute()" style="background:none;border:1px solid #a78bfa44;border-radius:6px;color:#a78bfa;cursor:pointer;padding:4px 8px;font-size:14px">'+(S.muted?'🔇':'🔊')+'</button>':'';
-  const notifBtn='Notification' in window&&Notification.permission!=='granted'?'<button onclick="requestNotifPermission()" title="Activar notificaciones" style="background:none;border:1px solid #fbbf2444;border-radius:6px;color:#fbbf24;cursor:pointer;padding:4px 8px;font-size:14px">🔔</button>':'';
   let pageContent='';
   if(S.page==='checklist')pageContent=pageChecklist();
   else if(S.page==='tienda')pageContent=pageTienda();
@@ -491,7 +486,7 @@ function pageMain(){
   else if(S.page==='album')pageContent=pageAlbum();
   const navSide=NAV.map(n=>'<button class="ns '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:15px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
   const navBot=NAV.map(n=>'<button class="nm '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:18px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
-  return '<div style="min-height:100vh"><header style="background:#0f0620;border-bottom:2px solid #ff69b422;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100"><div><div class="pf" style="font-size:8px;color:#ff69b4;line-height:1.9">🕊️ Paloma</div><div class="pf" style="font-size:5px;color:#c084fc">Checklists</div></div><div style="display:flex;align-items:center;gap:9px"><div style="background:#1a0a2e;border:1px solid #fbbf2444;border-radius:20px;padding:4px 11px"><span class="pf" style="font-size:9px;color:#fbbf24">⭐ '+ud().pts+'</span></div><span class="pf" style="font-size:7px;color:'+uInfo.c+'">'+uInfo.name+'</span>'+muteBtn+notifBtn+'<button onclick="S.user=null;S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;if(bgAudio){bgAudio.pause();bgAudio=null;}render()" style="background:none;border:1px solid #ff69b433;border-radius:6px;color:#ff69b4;cursor:pointer;padding:4px 8px;font-size:13px">✕</button></div></header><div style="display:flex"><div class="snav" style="width:186px;background:#0c0618;border-right:1px solid #ff69b411;padding:12px 8px;display:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto;flex-shrink:0">'+navSide+'</div><main style="flex:1;padding:14px;overflow-y:auto;min-height:calc(100vh - 52px)" class="mpb">'+pageContent+'</main></div><nav class="bnav" style="position:fixed;bottom:0;left:0;right:0;background:#0c0618;border-top:1px solid #ff69b422;z-index:100;display:none">'+navBot+'</nav></div>';
+  return '<div style="min-height:100vh"><header style="background:#0f0620;border-bottom:2px solid #ff69b422;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100"><div><div class="pf" style="font-size:8px;color:#ff69b4;line-height:1.9">🕊️ Paloma</div><div class="pf" style="font-size:5px;color:#c084fc">Checklists</div></div><div style="display:flex;align-items:center;gap:9px"><div style="background:#1a0a2e;border:1px solid #fbbf2444;border-radius:20px;padding:4px 11px"><span class="pf" style="font-size:9px;color:#fbbf24">⭐ '+ud().pts+'</span></div><span class="pf" style="font-size:7px;color:'+uInfo.c+'">'+uInfo.name+'</span>'+muteBtn+'<button onclick="S.user=null;S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;if(bgAudio){bgAudio.pause();bgAudio=null;}render()" style="background:none;border:1px solid #ff69b433;border-radius:6px;color:#ff69b4;cursor:pointer;padding:4px 8px;font-size:13px">✕</button></div></header><div style="display:flex"><div class="snav" style="width:186px;background:#0c0618;border-right:1px solid #ff69b411;padding:12px 8px;display:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto;flex-shrink:0">'+navSide+'</div><main style="flex:1;padding:14px;overflow-y:auto;min-height:calc(100vh - 52px)" class="mpb">'+pageContent+'</main></div><nav class="bnav" style="position:fixed;bottom:0;left:0;right:0;background:#0c0618;border-top:1px solid #ff69b422;z-index:100;display:none">'+navBot+'</nav></div>';
 }
 
 // ─── RENDER ────────────────────────────────────────────────────────────────
@@ -517,8 +512,8 @@ function togglePw(){const i=document.getElementById('lpw');i.type=i.type==='pass
 function doLogin(){
   const pw=document.getElementById('lpw').value;
   const lerr=document.getElementById('lerr');
-  if(pw===USERS.julia.pw){S.user='julia';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();setTimeout(requestNotifPermission,1500);return}
-  if(pw===USERS.jesus.pw){S.user='jesus';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();setTimeout(requestNotifPermission,1500);return}
+  if(pw===USERS.julia.pw){S.user='julia';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();setTimeout(checkPendingPoke,800);return}
+  if(pw===USERS.jesus.pw){S.user='jesus';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();setTimeout(checkPendingPoke,800);return}
   if(pw===APW){S.user='admin';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();return}
   if(lerr){lerr.textContent='Contraseña incorrecta 💔';lerr.style.display='block'}
 }
