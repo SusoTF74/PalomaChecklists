@@ -561,7 +561,7 @@ function pageAdmin(){
       +'<button onclick="doRemoveEventTask(&quot;'+t.id+'&quot;)" style="background:none;border:1px solid #f8717133;border-radius:6px;color:#f87171;cursor:pointer;padding:3px 8px;font-size:11px">✕</button></div>';
   });
   html+='<div style="background:#130820;border:2px solid #ff69b433;border-radius:12px;padding:16px;margin-bottom:18px">'
-    +'<div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:12px">🎪 Crear Evento</div>'
+    +'<div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:12px">'+(_adminEvtEditId?'✏️ Editar Evento':'🎪 Crear Evento')+'</div>'
     +'<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">'
     +'<input id="ae-title" class="inp" placeholder="Título del evento*">'
     +'<input id="ae-image" class="inp" placeholder="URL imagen de portada (opcional)">'
@@ -586,7 +586,7 @@ function pageAdmin(){
     +'<div style="display:flex;gap:8px;margin-bottom:12px">'
     +'<input id="ae-durval" class="inp" type="number" value="14" min="1" style="width:80px;font-size:13px">'
     +'<select id="ae-durunit" class="inp"><option value="dias">Días</option><option value="semanas">Semanas</option><option value="meses">Meses</option></select></div>'
-    +'<button class="btn" onclick="doCreateEvent()" style="width:100%;background:linear-gradient(135deg,#ff69b4,#f43f5e)">🎪 Crear Evento</button></div>';
+    +'<div style="display:flex;gap:8px"><button class="btn" onclick="doCreateEvent()" style="flex:1;background:linear-gradient(135deg,#ff69b4,#f43f5e)">'+(_adminEvtEditId?'💾 Guardar cambios':'🎪 Crear Evento')+'</button>'+(_adminEvtEditId?'<button class="btn-o" onclick="doCancelEditEvent()">Cancelar</button>':'')+'</div></div>';
   if(_evts2.length>0){
     html+='<div style="background:#130820;border:1px solid #ff69b422;border-radius:12px;padding:16px;margin-bottom:18px">'
       +'<div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:12px">📋 Eventos ('+_evts2.length+')</div>';
@@ -596,7 +596,7 @@ function pageAdmin(){
       html+='<div style="display:flex;align-items:center;gap:10px;background:#07070f;border-radius:10px;padding:10px;margin-bottom:6px">'
         +'<div style="flex:1"><div class="pf" style="font-size:7px;color:#f0d6ff;margin-bottom:2px">'+esc(e.title)+'</div>'
         +'<div class="pf" style="font-size:5px;color:'+(_act?'#4ade80':'#f87171')+';">'+(_act?'Activo · '+_dd+'d restantes':'Expirado')+'</div></div>'
-        +'<button onclick="doDeleteEvent(&quot;'+e.id+'&quot;)" style="background:none;border:1px solid #f8717133;border-radius:6px;color:#f87171;cursor:pointer;padding:4px 8px;font-size:12px">🗑️</button></div>';
+        +'<button onclick="doEditEvent(&quot;'+e.id+'&quot;)" style="background:none;border:1px solid #4ade8033;border-radius:6px;color:#4ade80;cursor:pointer;padding:4px 8px;font-size:12px;margin-right:4px">✏️</button>'+'<button onclick="doDeleteEvent(&quot;'+e.id+'&quot;)" style="background:none;border:1px solid #f8717133;border-radius:6px;color:#f87171;cursor:pointer;padding:4px 8px;font-size:12px">🗑️</button></div>';
     });
     html+='</div>';
   }
@@ -724,6 +724,7 @@ function buyEventCard(evtId){
 
 let _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',durValue:14,durUnit:'dias'};
 let _adminEvtTasks=[];
+let _adminEvtEditId=null;
 
 function saveAdminEvtForm(){
   const f=(id,key)=>{const el=document.getElementById(id);if(el)_adminEvt[key]=el.value;};
@@ -759,16 +760,43 @@ function doCreateEvent(){
   const now=Date.now();
   const evt={id:uid(),title:_adminEvt.title,image:_adminEvt.image,description:_adminEvt.desc,tasks:[..._adminEvtTasks],rewardCard:{id:uid(),title:_adminEvt.rewardTitle,image:_adminEvt.rewardImage,description:_adminEvt.rewardDesc,rarity:'evento'},startDate:now,endDate:now+(+_adminEvt.durValue*(msUnit[_adminEvt.durUnit]||86400000))};
   if(!S.db.events)S.db.events=[];
-  S.db.events.push(evt);
+  if(_adminEvtEditId){
+    const oldEvt=(S.db.events||[]).find(e=>e.id===_adminEvtEditId);
+    evt.id=_adminEvtEditId;
+    evt.rewardCard.id=oldEvt?oldEvt.rewardCard.id:evt.rewardCard.id;
+    evt.startDate=oldEvt?oldEvt.startDate:now;
+    evt.endDate=now+(+_adminEvt.durValue*(msUnit[_adminEvt.durUnit]||86400000));
+    S.db.events=(S.db.events||[]).map(e=>e.id===_adminEvtEditId?evt:e);
+    _adminEvtEditId=null;
+    flashAdmin('✅ Evento actualizado');
+  }else{
+    S.db.events.push(evt);
+    flashAdmin('✅ Evento creado');
+  }
   _adminEvtTasks=[];
   _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',durValue:14,durUnit:'dias'};
   save();render();
-  flashAdmin('✅ Evento creado');
 }
 function doDeleteEvent(id){
   if(!confirm('¿Eliminar este evento?'))return;
   S.db.events=(S.db.events||[]).filter(e=>e.id!==id);
   save();render();
+}
+function doEditEvent(id){
+  const evt=(S.db.events||[]).find(e=>e.id===id);
+  if(!evt)return;
+  _adminEvtEditId=id;
+  _adminEvt={title:evt.title,image:evt.image||'',desc:evt.description||'',rewardTitle:evt.rewardCard.title,rewardImage:evt.rewardCard.image||'',rewardDesc:evt.rewardCard.description||'',durValue:14,durUnit:'dias'};
+  _adminEvtTasks=[...evt.tasks];
+  render();
+  window.scrollTo(0,99999);
+}
+function doCancelEditEvent(){
+  _adminEvtEditId=null;
+  _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',durValue:14,durUnit:'dias'};
+  _adminEvtTasks=[];
+  render();
+  window.scrollTo(0,99999);
 }
 
 
