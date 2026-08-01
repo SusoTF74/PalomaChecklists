@@ -563,9 +563,9 @@ function pageAdmin(){
   html+='<div style="background:#130820;border:2px solid #ff69b433;border-radius:12px;padding:16px;margin-bottom:18px">'
     +'<div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:12px">'+(_adminEvtEditId?'✏️ Editar Evento':'🎪 Crear Evento')+'</div>'
     +'<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">'
-    +'<input id="ae-title" class="inp" placeholder="Título del evento*">'
-    +'<input id="ae-image" class="inp" placeholder="URL imagen de portada (opcional)">'
-    +'<textarea id="ae-desc" class="inp" placeholder="Descripción" rows="2"></textarea></div>'
+    +'<input id="ae-title" class="inp" placeholder="Título del evento*" value="'+esc(_adminEvt.title||'')+'">'
+    +'<input id="ae-image" class="inp" placeholder="URL imagen de portada (opcional)" value="'+esc(_adminEvt.image||'')+'">'
+    +'<textarea id="ae-desc" class="inp" placeholder="Descripción" rows="2">'+esc(_adminEvt.desc||'')+'</textarea></div>'
     +'<div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px">📋 Tasks de progreso</div>'
     +(_adminEvtTasks.length>0?_evtTasksHTML:'')
     +'<div style="background:#07070f;border:1px solid #ff69b422;border-radius:10px;padding:10px;margin-bottom:10px">'
@@ -579,13 +579,13 @@ function pageAdmin(){
     +'<button class="btn-o" onclick="doAddEventTask()">+ Añadir task</button></div></div>'
     +'<div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px;margin-top:4px">🎁 Carta recompensa (rareza Evento)</div>'
     +'<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px">'
-    +'<input id="ae-rtitle" class="inp" placeholder="Título de la carta*" style="font-size:12px">'
-    +'<input id="ae-rimage" class="inp" placeholder="URL imagen de la carta (opcional)" style="font-size:12px">'
-    +'<textarea id="ae-rdesc" class="inp" placeholder="Descripción de la carta" rows="2" style="font-size:12px"></textarea></div>'
-    +'<div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px">⏱️ Duración del evento</div>'
+    +'<input id="ae-rtitle" class="inp" placeholder="Título de la carta*" style="font-size:12px" value="'+esc(_adminEvt.rewardTitle||'')+'">'
+    +'<input id="ae-rimage" class="inp" placeholder="URL imagen de la carta (opcional)" style="font-size:12px" value="'+esc(_adminEvt.rewardImage||'')+'">'
+    +'<textarea id="ae-rdesc" class="inp" placeholder="Descripción de la carta" rows="2" style="font-size:12px">'+esc(_adminEvt.rewardDesc||'')+'</textarea></div>'
+    +'<div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px">📅 Fecha y hora de fin (hora canaria)</div>'
     +'<div style="display:flex;gap:8px;margin-bottom:12px">'
-    +'<input id="ae-durval" class="inp" type="number" value="14" min="1" style="width:80px;font-size:13px">'
-    +'<select id="ae-durunit" class="inp"><option value="dias">Días</option><option value="semanas">Semanas</option><option value="meses">Meses</option></select></div>'
+    +'<input id="ae-enddate" class="inp" type="date" style="font-size:13px;flex:1" value="'+(_adminEvt.endDateStr||'')+'">'
+    +'<input id="ae-endtime" class="inp" type="time" value="'+(_adminEvt.endTimeStr||'23:59')+'" style="font-size:13px;width:100px"></div>'
     +'<div style="display:flex;gap:8px"><button class="btn" onclick="doCreateEvent()" style="flex:1;background:linear-gradient(135deg,#ff69b4,#f43f5e)">'+(_adminEvtEditId?'💾 Guardar cambios':'🎪 Crear Evento')+'</button>'+(_adminEvtEditId?'<button class="btn-o" onclick="doCancelEditEvent()">Cancelar</button>':'')+'</div></div>';
   if(_evts2.length>0){
     html+='<div style="background:#130820;border:1px solid #ff69b422;border-radius:12px;padding:16px;margin-bottom:18px">'
@@ -730,13 +730,13 @@ function saveAdminEvtForm(){
   const f=(id,key)=>{const el=document.getElementById(id);if(el)_adminEvt[key]=el.value;};
   f('ae-title','title');f('ae-image','image');f('ae-desc','desc');
   f('ae-rtitle','rewardTitle');f('ae-rimage','rewardImage');f('ae-rdesc','rewardDesc');
-  f('ae-durval','durValue');f('ae-durunit','durUnit');
+  f('ae-enddate','endDateStr');f('ae-endtime','endTimeStr');
 }
 function restoreAdminEvtForm(){
   const f=(id,key)=>{const el=document.getElementById(id);if(el)el.value=_adminEvt[key]||'';};
   f('ae-title','title');f('ae-image','image');f('ae-desc','desc');
   f('ae-rtitle','rewardTitle');f('ae-rimage','rewardImage');f('ae-rdesc','rewardDesc');
-  f('ae-durval','durValue');f('ae-durunit','durUnit');
+  f('ae-enddate','endDateStr');f('ae-endtime','endTimeStr');
 }
 function doAddEventTask(){
   saveAdminEvtForm();
@@ -756,16 +756,17 @@ function doRemoveEventTask(id){
 function doCreateEvent(){
   saveAdminEvtForm();
   if(!_adminEvt.title||_adminEvtTasks.length===0||!_adminEvt.rewardTitle){flashAdmin('❌ Faltan: título, tareas o carta recompensa');return;}
-  const msUnit={dias:86400000,semanas:604800000,meses:2592000000};
+  if(!_adminEvt.endDateStr){flashAdmin('❌ Falta la fecha de fin');return;}
   const now=Date.now();
-  const evt={id:uid(),title:_adminEvt.title,image:_adminEvt.image,description:_adminEvt.desc,tasks:[..._adminEvtTasks],rewardCard:{id:uid(),title:_adminEvt.rewardTitle,image:_adminEvt.rewardImage,description:_adminEvt.rewardDesc,rarity:'evento'},startDate:now,endDate:now+(+_adminEvt.durValue*(msUnit[_adminEvt.durUnit]||86400000))};
+  const _endUTC=canaryDateTimeToUTC(_adminEvt.endDateStr,_adminEvt.endTimeStr||'23:59');
+  const evt={id:uid(),title:_adminEvt.title,image:_adminEvt.image,description:_adminEvt.desc,tasks:[..._adminEvtTasks],rewardCard:{id:uid(),title:_adminEvt.rewardTitle,image:_adminEvt.rewardImage,description:_adminEvt.rewardDesc,rarity:'evento'},startDate:now,endDate:_endUTC};
   if(!S.db.events)S.db.events=[];
   if(_adminEvtEditId){
     const oldEvt=(S.db.events||[]).find(e=>e.id===_adminEvtEditId);
     evt.id=_adminEvtEditId;
     evt.rewardCard.id=oldEvt?oldEvt.rewardCard.id:evt.rewardCard.id;
     evt.startDate=oldEvt?oldEvt.startDate:now;
-    evt.endDate=now+(+_adminEvt.durValue*(msUnit[_adminEvt.durUnit]||86400000));
+    evt.endDate=_endUTC;
     S.db.events=(S.db.events||[]).map(e=>e.id===_adminEvtEditId?evt:e);
     _adminEvtEditId=null;
     flashAdmin('✅ Evento actualizado');
@@ -774,7 +775,7 @@ function doCreateEvent(){
     flashAdmin('✅ Evento creado');
   }
   _adminEvtTasks=[];
-  _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',durValue:14,durUnit:'dias'};
+  _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',endDateStr:'',endTimeStr:'23:59'};
   save();render();
 }
 function doDeleteEvent(id){
@@ -786,14 +787,15 @@ function doEditEvent(id){
   const evt=(S.db.events||[]).find(e=>e.id===id);
   if(!evt)return;
   _adminEvtEditId=id;
-  _adminEvt={title:evt.title,image:evt.image||'',desc:evt.description||'',rewardTitle:evt.rewardCard.title,rewardImage:evt.rewardCard.image||'',rewardDesc:evt.rewardCard.description||'',durValue:14,durUnit:'dias'};
+  const _cdt=canaryDateTimeStr(evt.endDate);
+  _adminEvt={title:evt.title,image:evt.image||'',desc:evt.description||'',rewardTitle:evt.rewardCard.title,rewardImage:evt.rewardCard.image||'',rewardDesc:evt.rewardCard.description||'',endDateStr:_cdt.date,endTimeStr:_cdt.time};
   _adminEvtTasks=[...evt.tasks];
   render();
   window.scrollTo(0,99999);
 }
 function doCancelEditEvent(){
   _adminEvtEditId=null;
-  _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',durValue:14,durUnit:'dias'};
+  _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',endDateStr:'',endTimeStr:'23:59'};
   _adminEvtTasks=[];
   render();
   window.scrollTo(0,99999);
