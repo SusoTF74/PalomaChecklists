@@ -73,13 +73,14 @@ const OS_API_KEY = 'sytn6uakpuvxnlvdauat4e757';
 const USERS={julia:{pw:'Paloma1997',name:'Julia',c:'#ff69b4'},jesus:{pw:'Paloma2003',name:'Jesús',c:'#a78bfa'}};
 const APW='CacaAzucarada2.';
 const PTS=[5,10,15,20,25,30,35,40,45,50];
-const NAV=[{id:'checklist',ic:'✅',lbl:'Checklist'},{id:'tienda',ic:'🛍️',lbl:'Tienda'},{id:'coleccion',ic:'🃏',lbl:'Colección'},{id:'intercambios',ic:'🔄',lbl:'Cambios'},{id:'otro',ic:'💌',lbl:'Mi ½ 🍊'},{id:'album',ic:'📚',lbl:'Álbum'}];
+const NAV=[{id:'checklist',ic:'✅',lbl:'Checklist'},{id:'tienda',ic:'🛍️',lbl:'Tienda'},{id:'coleccion',ic:'🃏',lbl:'Colección'},{id:'intercambios',ic:'🔄',lbl:'Cambios'},{id:'otro',ic:'💌',lbl:'Mi ½ 🍊'},{id:'album',ic:'📚',lbl:'Álbum'},{id:'eventos',ic:'🎪',lbl:'Eventos'}];
 const R={
   comun:{lbl:'Común',b:'#6b7280',bg:'linear-gradient(160deg,#1a1a2e,#0d0d1a)',tc:'#9ca3af',glow:''},
   poco_comun:{lbl:'Poco Común',b:'#38bdf8',bg:'linear-gradient(160deg,#051828,#02101e)',tc:'#38bdf8',glow:'0 0 12px #38bdf855'},
   rara:{lbl:'Rara',b:'#4ade80',bg:'linear-gradient(160deg,#041a08,#021008)',tc:'#4ade80',glow:'0 0 12px #4ade8055'},
   epica:{lbl:'Épica',b:'#c084fc',bg:'linear-gradient(160deg,#1a0530,#0d0118)',tc:'#c084fc',glow:'0 0 18px #c084fc88'},
-  legendaria:{lbl:'Legendaria',b:'#ff69b4',bg:'linear-gradient(160deg,#1a0e00,#100900)',tc:'#fbbf24',glow:'',anim:true}
+  legendaria:{lbl:'Legendaria',b:'#ff69b4',bg:'linear-gradient(160deg,#1a0e00,#100900)',tc:'#fbbf24',glow:'',anim:true},
+  evento:{lbl:'Evento',b:'#ff69b4',bg:'linear-gradient(160deg,#2a0520,#1a030f)',tc:'#ff9dd0',glow:'0 0 18px #ff69b488'}
 };
 const SOBRES={
   comun:{lbl:'Sobre Común',cost:100,n:3,icon:'📦',bc:'#6b7280',gr:'linear-gradient(135deg,#1f2937,#6b7280)',probs:{comun:50,poco_comun:30,rara:15,epica:4,legendaria:1}},
@@ -123,7 +124,7 @@ function rollPack(type,pool){
   }
   return drawn;
 }
-function initDB(){return{lastReset:canaryDate(),julia:{pts:0,tasks:[],col:{},xp:0},jesus:{pts:0,tasks:[],col:{},xp:0},cards:[],trades:[],sounds:{},toques:{}}}
+function initDB(){return{lastReset:canaryDate(),julia:{pts:0,tasks:[],col:{},xp:0,eventProgress:{}},jesus:{pts:0,tasks:[],col:{},xp:0,eventProgress:{}},cards:[],trades:[],sounds:{},toques:{},events:[]}}
 function ud(){return S.db[S.user]}
 function other(){return S.user==='julia'?'jesus':'julia'}
 
@@ -155,6 +156,9 @@ function startSync(){
       if(!data.julia.xp)data.julia.xp=0;
       if(!data.jesus.xp)data.jesus.xp=0;
       if(!data.pokes)data.pokes={};
+      if(!data.events)data.events=[];
+      if(!data.julia.eventProgress)data.julia.eventProgress={};
+      if(!data.jesus.eventProgress)data.jesus.eventProgress={};
       const today=canaryDate();
       if(data.lastReset!==today){
         data.lastReset=today;
@@ -398,6 +402,23 @@ function pageTienda(){
     html+='<div style="background:#130820;border:2px solid '+cfg.bc+'33;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px"><div style="text-align:center"><div style="font-size:38px;margin-bottom:6px">'+cfg.icon+'</div><div class="pf" style="font-size:8px;color:#f0d6ff;margin-bottom:3px">'+cfg.lbl+'</div><div class="pf" style="font-size:6px;color:#888">'+cfg.n+' cartas'+(cfg.epic?' <span style="color:#c084fc">· épica grtda.</span>':'')+'</div></div><div style="background:#07070f;border-radius:8px;padding:8px"><div class="pf" style="font-size:5px;color:#555;margin-bottom:5px;text-align:center">Probabilidades</div>'+probs+'</div><button class="btn" onclick="doBuyPack(\''+k+'\')" '+(can?'':'disabled')+' style="background:'+(can?cfg.gr:'undefined')+';font-size:9px">⭐ '+cfg.cost+' pts</button>'+(!can?'<div class="pf" style="font-size:5px;color:#f87171;text-align:center">Faltan '+(cfg.cost-ud().pts)+' pts</div>':'')+'</div>';
   });
   html+='</div>';
+  const _now=Date.now();
+  const _expEvts=(S.db.events||[]).filter(e=>e.endDate<=_now);
+  const _purchasable=_expEvts.filter(e=>{const ep=(ud().eventProgress||{})[e.id];return!ep?.claimed&&!ep?.purchased;});
+  if(_purchasable.length>0){
+    html+='<div class="pf" style="font-size:9px;color:#ff69b4;margin-bottom:14px;margin-top:8px">🎪 Cartas de Evento</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:14px;margin-bottom:24px">';
+    _purchasable.forEach(e=>{
+      const can=ud().pts>=300;
+      html+='<div style="background:#130820;border:2px solid #ff69b433;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px">';
+      html+='<div style="text-align:center"><div style="font-size:28px;margin-bottom:4px">🎪</div><div class="pf" style="font-size:7px;color:#f0d6ff;margin-bottom:3px">'+esc(e.rewardCard.title)+'</div><div class="pf" style="font-size:6px;color:#ff69b4">De: '+esc(e.title)+'</div></div>';
+      html+='<div style="display:flex;justify-content:center">'+mysteryCard(e.rewardCard)+'</div>';
+      html+='<button class="btn" onclick="buyEventCard(\''+e.id+'\')" style="font-size:9px"'+(can?'':' disabled')+'>⭐ 300 pts</button>';
+      if(!can)html+='<div class="pf" style="font-size:5px;color:#f87171;text-align:center">Faltan '+(300-ud().pts)+' pts</div>';
+      html+='</div>';
+    });
+    html+='</div>';
+  }
   if(S.pack){
     const p=S.pack;
     const slots=p.cards.map((c,i)=>i<p.revealed?'<div class="flip-in">'+cardHTML(c,0,false,false)+'</div>':'<div class="blink" style="width:148px;background:#07070f;border:2px solid #ff69b422;border-radius:8px;display:flex;align-items:center;justify-content:center;aspect-ratio:.67"><span style="font-size:36px">🎴</span></div>').join('');
@@ -409,9 +430,11 @@ function pageTienda(){
 }
 
 function pageColeccion(){
-  const col=ud().col||{},pool=S.db.cards;
-  const owned=pool.filter(c=>(col[c.id]||0)>0).length;
-  const RAR_ORDER=['comun','poco_comun','rara','epica','legendaria'];
+  const col=ud().col||{};
+  const _evtCards=(S.db.events||[]).map(e=>e.rewardCard);
+  const pool=[...S.db.cards,..._evtCards];
+  const owned=pool.filter(c=>c&&(col[c.id]||0)>0).length;
+  const RAR_ORDER=['comun','poco_comun','rara','epica','legendaria','evento'];
   const sorted=[...pool].sort((a,b)=>RAR_ORDER.indexOf(a.rarity)-RAR_ORDER.indexOf(b.rarity));
   const filtered=S.rarFilt==='all'?sorted:sorted.filter(c=>c.rarity===S.rarFilt);
   const filters=[['all','Todas','#f0d6ff']].concat(Object.entries(R).map(([k,v])=>[k,v.lbl,v.tc])).map(([k,l,c])=>'<button onclick="S.rarFilt=\''+k+'\';render()" style="border:1px solid '+(S.rarFilt===k?c:'#ff69b433')+';border-radius:20px;background:'+(S.rarFilt===k?c+'22':'transparent')+';color:'+(S.rarFilt===k?c:'#888')+';padding:4px 10px;cursor:pointer;font-family:\'Press Start 2P\',monospace;font-size:6px">'+l+'</button>').join('');
@@ -548,12 +571,156 @@ function pageMain(){
   else if(S.page==='intercambios')pageContent=pageIntercambios();
   else if(S.page==='otro')pageContent=pageOtro();
   else if(S.page==='album')pageContent=pageAlbum();
+  else if(S.page==='eventos')pageContent=pageEventos();
   const navSide=NAV.map(n=>'<button class="ns '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:15px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
   const navBot=NAV.map(n=>'<button class="nm '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:24px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
   return '<div style="min-height:100vh"><header style="background:#0f0620;border-bottom:2px solid #ff69b422;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100"><div><div class="pf" style="font-size:8px;color:#ff69b4;line-height:1.9">🕊️ Paloma</div><div class="pf" style="font-size:5px;color:#c084fc">Checklists</div></div><div style="display:flex;align-items:center;gap:9px"><span class="pf" style="font-size:7px;color:'+uInfo.c+'">'+uInfo.name+'</span>'+_xpBar+'<div style="background:#1a0a2e;border:1px solid #fbbf2444;border-radius:20px;padding:4px 11px"><span class="pf" style="font-size:9px;color:#fbbf24">⭐ '+ud().pts+'</span></div>'+muteBtn+'<button onclick="S.user=null;S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;if(bgAudio){bgAudio.pause();bgAudio=null;}render()" style="background:none;border:1px solid #ff69b433;border-radius:6px;color:#ff69b4;cursor:pointer;padding:4px 8px;font-size:13px">✕</button></div></header><div style="display:flex"><div class="snav" style="width:186px;background:#0c0618;border-right:1px solid #ff69b411;padding:12px 8px;display:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto;flex-shrink:0">'+navSide+'</div><main style="flex:1;padding:14px;overflow-y:auto;min-height:calc(100vh - 52px)" class="mpb">'+pageContent+'</main></div><nav class="bnav" style="position:fixed;bottom:0;left:0;right:0;background:#0c0618;border-top:1px solid #ff69b422;z-index:100;display:none">'+navBot+'</nav></div>';
 }
 
 // ─── RENDER ────────────────────────────────────────────────────────────────
+function pageEventos(){
+  const evts=S.db.events||[];
+  const now=Date.now();
+  const active=evts.filter(e=>e.endDate>now);
+  let html='<div style="max-width:680px"><div class="pf" style="font-size:11px;color:#ff69b4;margin-bottom:18px">🎪 Eventos</div>';
+  if(active.length===0){
+    html+='<div style="text-align:center;padding:48px 0"><div style="font-size:52px;margin-bottom:12px">🎪</div><div class="pf" style="font-size:9px;color:#555">No hay eventos activos</div></div>';
+  }else{
+    active.forEach(evt=>{
+      const ep=(ud().eventProgress||{})[evt.id]||{tasks:{},claimed:false,purchased:false,tasksRewarded:{}};
+      const allDone=evt.tasks.every(t=>(ep.tasks[t.id]||0)>=t.target);
+      const diff=Math.max(0,evt.endDate-now);
+      const dd=Math.floor(diff/86400000),hh=Math.floor((diff%86400000)/3600000),mm=Math.floor((diff%3600000)/60000),ss=Math.floor((diff%60000)/1000);
+      html+='<div style="background:#130820;border:2px solid #ff69b433;border-radius:16px;overflow:hidden;margin-bottom:24px">';
+      if(evt.image)html+='<img src="'+esc(evt.image)+'" style="width:100%;height:160px;object-fit:cover" onerror="this.style.display=\'none\'">';
+      html+='<div style="padding:16px">';
+      html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px"><div class="pf" style="font-size:11px;color:#ff69b4">'+esc(evt.title)+'</div><div class="pf evt-countdown" data-end="'+evt.endDate+'" style="font-size:6px;color:#fbbf24;text-align:right;flex-shrink:0;margin-left:8px">'+dd+'d '+hh+'h '+mm+'m '+ss+'s</div></div>';
+      if(evt.description)html+='<div style="font-size:12px;color:#a0a0c0;margin-bottom:14px;line-height:1.6">'+esc(evt.description)+'</div>';
+      html+='<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">';
+      evt.tasks.forEach(task=>{
+        const cur=(ep.tasks[task.id]||0);
+        const pct=Math.min(100,Math.round(cur/task.target*100));
+        const done=cur>=task.target;
+        html+='<div style="background:#0d0618;border:1px solid '+(done?'#4ade8033':'#ff69b422')+';border-radius:10px;padding:10px">';
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span class="pf" style="font-size:7px;color:'+(done?'#4ade80':'#f0d6ff')+'">'+esc(task.title)+'</span><div style="display:flex;gap:6px;flex-shrink:0"><span class="pf" style="font-size:6px;color:#fbbf24">⭐'+task.pts+'</span><span class="pf" style="font-size:6px;color:#60a5fa">+'+task.xp+'XP</span></div></div>';
+        html+='<div style="display:flex;align-items:center;gap:8px">';
+        html+='<button onclick="updateEventProgress(\''+evt.id+'\',\''+task.id+'\',-1)" style="background:#ff69b411;border:1px solid #ff69b444;border-radius:6px;color:#ff69b4;cursor:pointer;padding:2px 12px;font-size:18px;font-family:monospace;flex-shrink:0">-</button>';
+        html+='<div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span class="pf" style="font-size:6px;color:#888">'+cur+'/'+task.target+'</span></div><div style="background:#07070f;border-radius:20px;height:7px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+(done?'linear-gradient(90deg,#4ade80,#22d3ee)':'linear-gradient(90deg,#ff69b4,#c084fc)')+';border-radius:20px;transition:width .3s"></div></div></div>';
+        html+='<button onclick="updateEventProgress(\''+evt.id+'\',\''+task.id+'\',1)" style="background:#ff69b411;border:1px solid #ff69b444;border-radius:6px;color:#ff69b4;cursor:pointer;padding:2px 12px;font-size:18px;font-family:monospace;flex-shrink:0">+</button>';
+        html+='</div></div>';
+      });
+      html+='</div>';
+      html+='<div style="margin-bottom:14px"><div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:8px">🎁 Recompensa final</div><div style="display:flex;justify-content:center">';
+      if(ep.claimed){html+=cardHTML(evt.rewardCard,0,false,false);}
+      else{html+=mysteryCard(evt.rewardCard);}
+      html+='</div></div>';
+      if(allDone&&!ep.claimed){
+        html+='<button class="btn" onclick="claimEventReward(\''+evt.id+'\')" style="width:100%;background:linear-gradient(135deg,#ff69b4,#f43f5e)">🎁 Reclamar recompensa final</button>';
+      }else if(ep.claimed){
+        html+='<div class="pf" style="text-align:center;font-size:8px;color:#4ade80;padding:8px">✅ ¡Recompensa obtenida!</div>';
+      }else{
+        const rem=evt.tasks.filter(t=>(ep.tasks[t.id]||0)<t.target).length;
+        html+='<div class="pf" style="text-align:center;font-size:7px;color:#555;padding:8px">Completa '+rem+' tarea'+(rem>1?'s':'')+' más para reclamar</div>';
+      }
+      html+='</div></div>';
+    });
+  }
+  html+='</div>';
+  return html;
+}
+
+function updateEventProgress(evtId,taskId,delta){
+  const evt=(S.db.events||[]).find(e=>e.id===evtId);if(!evt)return;
+  const task=evt.tasks.find(t=>t.id===taskId);if(!task)return;
+  if(!S.db[S.user].eventProgress)S.db[S.user].eventProgress={};
+  if(!S.db[S.user].eventProgress[evtId])S.db[S.user].eventProgress[evtId]={tasks:{},claimed:false,purchased:false,tasksRewarded:{}};
+  const ep=S.db[S.user].eventProgress[evtId];
+  if(!ep.tasksRewarded)ep.tasksRewarded={};
+  const cur=ep.tasks[taskId]||0;
+  const nv=Math.max(0,Math.min(task.target,cur+delta));
+  ep.tasks[taskId]=nv;
+  if(nv>=task.target&&cur<task.target&&!ep.tasksRewarded[taskId]){
+    ep.tasksRewarded[taskId]=true;
+    S.db[S.user].pts+=task.pts;
+    gainXP(task.xp);
+  }
+  save();render();
+}
+
+function claimEventReward(evtId){
+  const evt=(S.db.events||[]).find(e=>e.id===evtId);if(!evt)return;
+  if(!S.db[S.user].eventProgress)S.db[S.user].eventProgress={};
+  const ep=S.db[S.user].eventProgress[evtId]||{tasks:{},claimed:false,tasksRewarded:{}};
+  if(ep.claimed)return;
+  if(!evt.tasks.every(t=>(ep.tasks[t.id]||0)>=t.target))return;
+  S.db[S.user].col[evt.rewardCard.id]=1;
+  S.db[S.user].eventProgress[evtId]={...ep,claimed:true};
+  save();render();
+  playSound('acceptTrade');
+}
+
+function buyEventCard(evtId){
+  const evt=(S.db.events||[]).find(e=>e.id===evtId);if(!evt)return;
+  if(ud().pts<300)return;
+  if(!S.db[S.user].eventProgress)S.db[S.user].eventProgress={};
+  const ep=S.db[S.user].eventProgress[evtId]||{tasks:{},claimed:false,purchased:false};
+  if(ep.claimed||ep.purchased)return;
+  S.db[S.user].pts-=300;
+  S.db[S.user].col[evt.rewardCard.id]=1;
+  S.db[S.user].eventProgress[evtId]={...ep,purchased:true};
+  save();render();
+}
+
+let _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',durValue:14,durUnit:'dias'};
+let _adminEvtTasks=[];
+
+function saveAdminEvtForm(){
+  const f=(id,key)=>{const el=document.getElementById(id);if(el)_adminEvt[key]=el.value;};
+  f('ae-title','title');f('ae-image','image');f('ae-desc','desc');
+  f('ae-rtitle','rewardTitle');f('ae-rimage','rewardImage');f('ae-rdesc','rewardDesc');
+  f('ae-durval','durValue');f('ae-durunit','durUnit');
+}
+function restoreAdminEvtForm(){
+  const f=(id,key)=>{const el=document.getElementById(id);if(el)el.value=_adminEvt[key]||'';};
+  f('ae-title','title');f('ae-image','image');f('ae-desc','desc');
+  f('ae-rtitle','rewardTitle');f('ae-rimage','rewardImage');f('ae-rdesc','rewardDesc');
+  f('ae-durval','durValue');f('ae-durunit','durUnit');
+}
+function doAddEventTask(){
+  saveAdminEvtForm();
+  const title=document.getElementById('aet-title')?.value.trim();
+  const target=Math.max(1,+document.getElementById('aet-target')?.value||1);
+  const pts=+document.getElementById('aet-pts')?.value||10;
+  const xp=+document.getElementById('aet-xp')?.value||5;
+  if(!title)return;
+  _adminEvtTasks.push({id:uid(),title,target,pts,xp});
+  render();window.scrollTo(0,99999);
+}
+function doRemoveEventTask(id){
+  saveAdminEvtForm();
+  _adminEvtTasks=_adminEvtTasks.filter(t=>t.id!==id);
+  render();window.scrollTo(0,99999);
+}
+function doCreateEvent(){
+  saveAdminEvtForm();
+  if(!_adminEvt.title||_adminEvtTasks.length===0||!_adminEvt.rewardTitle){flashAdmin('❌ Faltan: título, tareas o carta recompensa');return;}
+  const msUnit={dias:86400000,semanas:604800000,meses:2592000000};
+  const now=Date.now();
+  const evt={id:uid(),title:_adminEvt.title,image:_adminEvt.image,description:_adminEvt.desc,tasks:[..._adminEvtTasks],rewardCard:{id:uid(),title:_adminEvt.rewardTitle,image:_adminEvt.rewardImage,description:_adminEvt.rewardDesc,rarity:'evento'},startDate:now,endDate:now+(+_adminEvt.durValue*(msUnit[_adminEvt.durUnit]||86400000))};
+  if(!S.db.events)S.db.events=[];
+  S.db.events.push(evt);
+  _adminEvtTasks=[];
+  _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',durValue:14,durUnit:'dias'};
+  save();render();
+  flashAdmin('✅ Evento creado');
+}
+function doDeleteEvent(id){
+  if(!confirm('¿Eliminar este evento?'))return;
+  S.db.events=(S.db.events||[]).filter(e=>e.id!==id);
+  save();render();
+}
+
+
 function render(){
   if(S.loading){document.getElementById('app').innerHTML='<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px"><div style="font-size:48px">🕊️</div><div class="pf" style="color:#ff69b4;font-size:10px">Cargando...</div></div>';return}
   const app=document.getElementById('app');
@@ -708,6 +875,7 @@ startSync();
 setInterval(()=>{
   S.timer=calcTimer();
   document.querySelectorAll('.timer-el').forEach(el=>el.textContent=S.timer);
+  document.querySelectorAll('.evt-countdown').forEach(el=>{const end=+el.dataset.end;const diff=Math.max(0,end-Date.now());const dd=Math.floor(diff/86400000),hh=Math.floor((diff%86400000)/3600000),mm=Math.floor((diff%3600000)/60000),ss=Math.floor((diff%60000)/1000);el.textContent=dd+'d '+hh+'h '+mm+'m '+ss+'s';});
   try{
     const pts=new Intl.DateTimeFormat('en-US',{timeZone:'Atlantic/Canary',hour:'numeric',minute:'numeric',second:'numeric',hour12:false}).formatToParts(new Date());
     const h=+pts.find(p=>p.type==='hour').value,m=+pts.find(p=>p.type==='minute').value,sv=+pts.find(p=>p.type==='second').value;
