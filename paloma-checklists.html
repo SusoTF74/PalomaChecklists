@@ -550,7 +550,58 @@ function pageAdmin(){
   html+='<div style="background:#130820;border:1px solid #a78bfa33;border-radius:12px;padding:16px;margin-bottom:18px"><div class="pf" style="font-size:8px;color:#a78bfa;margin-bottom:4px">🔊 Sonidos</div><div class="pf" style="font-size:6px;color:#555;margin-bottom:14px;line-height:1.8">URLs de audio (.mp3/.ogg/.wav). Usa ▶ para probar antes de guardar.</div>'+soundRows+'<button class="btn" onclick="doSaveSounds()" style="width:100%;background:linear-gradient(135deg,#7c3aed,#a78bfa)">Guardar sonidos</button></div>';
   html+='<div style="margin-top:4px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn-g" onclick="doExport()">📦 Exportar backup</button><button class="btn-o" onclick="S.showImport=!S.showImport;render()">📥 Importar backup</button></div>';
   if(S.showImport){html+='<div style="margin-top:12px;background:#130820;border:1px solid #4ade8033;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px"><div class="pf" style="font-size:7px;color:#4ade80">Pega el backup JSON:</div><textarea id="import-ta" class="inp" rows="5"></textarea><div style="display:flex;gap:8px"><button class="btn-g" onclick="doImport()">Importar</button><button class="btn-o" onclick="S.showImport=false;render()">Cancelar</button></div></div>';}
-  html+='<div style="margin-top:24px;padding:14px;background:#1e0a0a;border:1px solid #f8717133;border-radius:10px"><div class="pf" style="font-size:8px;color:#f87171;margin-bottom:10px">⚠️ Zona peligrosa</div><button class="btn-d" onclick="doReset()">Reset completo (conserva cartas y sonidos)</button></div></div>';
+
+  const _evts2=S.db.events||[];
+  const _now2=Date.now();
+  let _evtTasksHTML='';
+  _adminEvtTasks.forEach(function(t){
+    _evtTasksHTML+='<div style="display:flex;align-items:center;gap:8px;background:#07070f;border-radius:8px;padding:8px 10px;margin-bottom:6px">'
+      +'<div style="flex:1"><div class="pf" style="font-size:6px;color:#f0d6ff;margin-bottom:2px">'+esc(t.title)+'</div>'
+      +'<div class="pf" style="font-size:5px;color:#888">Obj: '+t.target+' · ⭐'+t.pts+' · +'+t.xp+'XP</div></div>'
+      +'<button onclick="doRemoveEventTask(&quot;'+t.id+'&quot;)" style="background:none;border:1px solid #f8717133;border-radius:6px;color:#f87171;cursor:pointer;padding:3px 8px;font-size:11px">✕</button></div>';
+  });
+  html+='<div style="background:#130820;border:2px solid #ff69b433;border-radius:12px;padding:16px;margin-bottom:18px">'
+    +'<div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:12px">🎪 Crear Evento</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">'
+    +'<input id="ae-title" class="inp" placeholder="Título del evento*">'
+    +'<input id="ae-image" class="inp" placeholder="URL imagen de portada (opcional)">'
+    +'<textarea id="ae-desc" class="inp" placeholder="Descripción" rows="2"></textarea></div>'
+    +'<div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px">📋 Tasks de progreso</div>'
+    +(_adminEvtTasks.length>0?_evtTasksHTML:'')
+    +'<div style="background:#07070f;border:1px solid #ff69b422;border-radius:10px;padding:10px;margin-bottom:10px">'
+    +'<div class="pf" style="font-size:6px;color:#888;margin-bottom:8px">Nueva task:</div>'
+    +'<div style="display:flex;flex-direction:column;gap:7px">'
+    +'<input id="aet-title" class="inp" placeholder="Nombre de la task*" style="font-size:12px">'
+    +'<div style="display:flex;gap:7px">'
+    +'<input id="aet-target" class="inp" type="number" placeholder="Objetivo" value="10" min="1" style="font-size:12px">'
+    +'<input id="aet-pts" class="inp" type="number" placeholder="Puntos" value="10" min="0" style="font-size:12px">'
+    +'<input id="aet-xp" class="inp" type="number" placeholder="XP" value="5" min="0" style="font-size:12px"></div>'
+    +'<button class="btn-o" onclick="doAddEventTask()">+ Añadir task</button></div></div>'
+    +'<div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px;margin-top:4px">🎁 Carta recompensa (rareza Evento)</div>'
+    +'<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px">'
+    +'<input id="ae-rtitle" class="inp" placeholder="Título de la carta*" style="font-size:12px">'
+    +'<input id="ae-rimage" class="inp" placeholder="URL imagen de la carta (opcional)" style="font-size:12px">'
+    +'<textarea id="ae-rdesc" class="inp" placeholder="Descripción de la carta" rows="2" style="font-size:12px"></textarea></div>'
+    +'<div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px">⏱️ Duración del evento</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:12px">'
+    +'<input id="ae-durval" class="inp" type="number" value="14" min="1" style="width:80px;font-size:13px">'
+    +'<select id="ae-durunit" class="inp"><option value="dias">Días</option><option value="semanas">Semanas</option><option value="meses">Meses</option></select></div>'
+    +'<button class="btn" onclick="doCreateEvent()" style="width:100%;background:linear-gradient(135deg,#ff69b4,#f43f5e)">🎪 Crear Evento</button></div>';
+  if(_evts2.length>0){
+    html+='<div style="background:#130820;border:1px solid #ff69b422;border-radius:12px;padding:16px;margin-bottom:18px">'
+      +'<div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:12px">📋 Eventos ('+_evts2.length+')</div>';
+    _evts2.forEach(function(e){
+      const _act=e.endDate>_now2;
+      const _dd=Math.floor(Math.max(0,e.endDate-_now2)/86400000);
+      html+='<div style="display:flex;align-items:center;gap:10px;background:#07070f;border-radius:10px;padding:10px;margin-bottom:6px">'
+        +'<div style="flex:1"><div class="pf" style="font-size:7px;color:#f0d6ff;margin-bottom:2px">'+esc(e.title)+'</div>'
+        +'<div class="pf" style="font-size:5px;color:'+(_act?'#4ade80':'#f87171')+';">'+(_act?'Activo · '+_dd+'d restantes':'Expirado')+'</div></div>'
+        +'<button onclick="doDeleteEvent(&quot;'+e.id+'&quot;)" style="background:none;border:1px solid #f8717133;border-radius:6px;color:#f87171;cursor:pointer;padding:4px 8px;font-size:12px">🗑️</button></div>';
+    });
+    html+='</div>';
+  }
+
+    html+='<div style="margin-top:24px;padding:14px;background:#1e0a0a;border:1px solid #f8717133;border-radius:10px"><div class="pf" style="font-size:8px;color:#f87171;margin-bottom:10px">⚠️ Zona peligrosa</div><button class="btn-d" onclick="doReset()">Reset completo (conserva cartas y sonidos)</button></div></div>';
   return html;
 }
 
