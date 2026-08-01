@@ -511,7 +511,9 @@ function pageIntercambios(){
 function pageOtro(){
   const od=S.db[other()],oName=USERS[other()].name,tasks=od.tasks||[],done=tasks.filter(t=>t.done);
   const otherPts=od.pts||0;
-  const otherOwned=S.db.cards.filter(c=>(od.col||{})[c.id]>0).length;
+  const _otherEvtOwned=(S.db.events||[]).filter(e=>e.rewardCard&&(od.col||{})[e.rewardCard.id]>0).length;
+  const otherOwned=S.db.cards.filter(c=>(od.col||{})[c.id]>0).length+_otherEvtOwned;
+  const _totalCards=S.db.cards.length+(S.db.events||[]).length;
   const _oXp=od.xp||0,_oLv=getLevel(_oXp),_oRank=getRank(_oLv);
   const _oRIcon=getRankIcon(_oRank);
   const _oRankImg=_oRIcon?'<img src="'+esc(_oRIcon)+'" style="width:20px;height:20px;object-fit:contain">'  :'<span style="font-size:16px">'+getRankEmoji(_oRank)+'</span>';
