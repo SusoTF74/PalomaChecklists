@@ -554,7 +554,16 @@ function render(){
   if(S.loading){document.getElementById('app').innerHTML='<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px"><div style="font-size:48px">🕊️</div><div class="pf" style="color:#ff69b4;font-size:10px">Cargando...</div></div>';return}
   const app=document.getElementById('app');
   if(!S.user){app.innerHTML=pageLogin();return}
-  if(S.user==='admin'){app.innerHTML=pageAdmin();restoreAdminForm();return}
+  if(S.user==='admin'){
+    try{
+      app.innerHTML=pageAdmin();
+      restoreAdminForm();
+    }catch(e){
+      console.error('Admin crash:',e);
+      app.innerHTML='<div style="padding:20px;color:#f87171;font-family:monospace;font-size:12px;background:#1a0a2e;min-height:100vh"><b>Error en admin:</b><br>'+e.message+'<br><br>'+e.stack.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div>';
+    }
+    return;
+  }
   app.innerHTML=pageMain();
 }
 
@@ -574,7 +583,7 @@ function doLogin(){
   const lerr=document.getElementById('lerr');
   if(pw===USERS.julia.pw){S.user='julia';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();setTimeout(checkPendingPoke,800);return}
   if(pw===USERS.jesus.pw){S.user='jesus';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();setTimeout(checkPendingPoke,800);return}
-  if(pw===APW){S.user='admin';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();return}
+  console.log('Admin pw check:',pw===APW,JSON.stringify(pw),JSON.stringify(APW));if(pw===APW){S.user='admin';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();return}
   if(lerr){lerr.textContent='Contraseña incorrecta 💔';lerr.style.display='block'}
 }
 
