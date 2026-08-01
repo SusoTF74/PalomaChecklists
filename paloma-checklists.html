@@ -25,6 +25,8 @@ html,body{min-height:100%;background:#0d0618;font-family:system-ui,sans-serif;co
 @keyframes flipIn{from{transform:rotateY(90deg);opacity:0}to{transform:rotateY(0);opacity:1}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0)}70%{opacity:1}100%{opacity:0;transform:translateY(-65px)}}
+@keyframes levelUpAnim{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.25)}55%{opacity:1;transform:translate(-50%,-65%) scale(1)}100%{opacity:0;transform:translate(-50%,-90%) scale(.85)}}
 @keyframes shake{0%,100%{transform:translateX(0)}10%,50%,90%{transform:translateX(-10px) rotate(-1deg)}20%,60%{transform:translateX(10px) rotate(1deg)}30%,70%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
 .legend-card{animation:lp 3s ease-in-out infinite,fly 3s ease-in-out infinite}
 .flip-in{animation:flipIn .45s ease-out both}.fade-up{animation:fadeUp .3s ease-out both}.blink{animation:pulse 1.2s ease-in-out infinite}
@@ -83,7 +85,7 @@ const SOBRES={
   raro:{lbl:'Sobre Raro',cost:200,n:4,icon:'💠',bc:'#38bdf8',gr:'linear-gradient(135deg,#0369a1,#38bdf8)',probs:{comun:20,poco_comun:30,rara:30,epica:15,legendaria:5}},
   mega:{lbl:'Megasobre ✨',cost:300,n:5,icon:'🌟',bc:'#fbbf24',gr:'linear-gradient(135deg,#92400e,#fbbf24)',probs:{comun:15,poco_comun:20,rara:25,epica:25,legendaria:15},epic:true}
 };
-const SND_DEFS=[['bgMusic','🎵 Música de fondo (bucle)'],['addTask','✅ Añadir tarea'],['completeTask','✓ Completar tarea'],['requestTrade','📤 Enviar intercambio'],['acceptTrade','🤝 Aceptar intercambio'],['openPack','📦 Abrir sobre'],['comun','⬜ Revelar carta Común'],['poco_comun','💙 Revelar carta Poco Común'],['rara','💚 Revelar carta Rara'],['epica','💜 Revelar carta Épica'],['legendaria','⭐ Revelar carta Legendaria'],['toque','🔔 Recibir un toque']];
+const SND_DEFS=[['bgMusic','🎵 Música de fondo (bucle)'],['addTask','✅ Añadir tarea'],['completeTask','✓ Completar tarea'],['requestTrade','📤 Enviar intercambio'],['acceptTrade','🤝 Aceptar intercambio'],['openPack','📦 Abrir sobre'],['comun','⬜ Revelar carta Común'],['poco_comun','💙 Revelar carta Poco Común'],['rara','💚 Revelar carta Rara'],['epica','💜 Revelar carta Épica'],['legendaria','⭐ Revelar carta Legendaria'],['toque','🔔 Recibir un toque'],['levelUp','🎵 Sonido Level Up']];
 
 // ─── STATE ─────────────────────────────────────────────────────────────────
 let S={user:null,page:'checklist',db:null,timer:'--:--:--',selPts:10,pack:null,inspect:null,myCard:null,thCard:null,rarFilt:'all',adminEditId:null,showImport:false,adminRarity:'comun',muted:false,loading:true};
@@ -119,7 +121,7 @@ function rollPack(type,pool){
   }
   return drawn;
 }
-function initDB(){return{lastReset:canaryDate(),julia:{pts:0,tasks:[],col:{}},jesus:{pts:0,tasks:[],col:{}},cards:[],trades:[],sounds:{},toques:{}}}
+function initDB(){return{lastReset:canaryDate(),julia:{pts:0,tasks:[],col:{},xp:0},jesus:{pts:0,tasks:[],col:{},xp:0},cards:[],trades:[],sounds:{},toques:{}}}
 function ud(){return S.db[S.user]}
 function other(){return S.user==='julia'?'jesus':'julia'}
 
@@ -148,6 +150,8 @@ function startSync(){
       data.trades = toArr(data.trades);
       if(!data.sounds)data.sounds={};
       if(!data.toques)data.toques={};
+      if(!data.julia.xp)data.julia.xp=0;
+      if(!data.jesus.xp)data.jesus.xp=0;
       const today=canaryDate();
       if(data.lastReset!==today){
         data.lastReset=today;
@@ -222,6 +226,37 @@ function doSaveSounds(){
   flashAdmin('✅ Sonidos guardados');
 }
 
+// ─── XP SYSTEM ────────────────────────────────────────────────────
+function xpToReachLevel(lv){if(lv<=1)return 0;return 82*(lv-1)*lv/2;}
+function getLevel(xp){xp=xp||0;let lv=1;while(xpToReachLevel(lv+1)<=xp)lv++;return lv;}
+function xpForNextLevel(lv){return 82*lv;}
+function getRank(lv){if(lv>=100)return'diamond';if(lv>=75)return'platinum';if(lv>=50)return'gold';if(lv>=25)return'silver';return'bronze';}
+function getRankIcon(rank){const s=S.db&&S.db.sounds||{};return{bronze:s.rankBronze,silver:s.rankSilver,gold:s.rankGold,platinum:s.rankPlatinum,diamond:s.rankDiamond}[rank]||'';}
+function getRankEmoji(rank){return{bronze:'🥉',silver:'🥈',gold:'🥇',platinum:'💠',diamond:'💎'}[rank]||'🥉';}
+function showXPEffect(amount,leveled){
+  const el=document.createElement('div');
+  el.textContent='+'+amount+' XP';
+  el.style.cssText="position:fixed;top:58px;right:16px;z-index:900;font-family:'Press Start 2P',monospace;font-size:9px;color:#fbbf24;text-shadow:0 0 8px #fbbf2488;pointer-events:none;animation:floatUp 1.5s ease-out forwards;";
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1600);
+  if(leveled){
+    playSound('levelUp');
+    const lel=document.createElement('div');
+    lel.textContent='Level Up!';
+    lel.style.cssText="position:fixed;top:50%;left:50%;z-index:901;font-family:'Press Start 2P',monospace;font-size:24px;color:#60a5fa;text-shadow:0 0 20px #3b82f6aa;pointer-events:none;animation:levelUpAnim 2.5s ease-out forwards;white-space:nowrap;";
+    document.body.appendChild(lel);
+    setTimeout(()=>lel.remove(),2600);
+  }
+}
+function gainXP(amount){
+  if(!S.db||!S.user||S.user==='admin')return;
+  const oldLv=getLevel(S.db[S.user].xp||0);
+  S.db[S.user].xp=(S.db[S.user].xp||0)+amount;
+  const newLv=getLevel(S.db[S.user].xp);
+  save();
+  showXPEffect(amount,newLv>oldLv);
+}
+
 // ─── NOTIFICACIONES (IN-APP) ─────────────────────────────────────────
 function showToqueNotification(fromName){
   playSound('toque');
@@ -263,7 +298,8 @@ function doToque(){
   S.db.toques[S.user]=now;
   if(!S.db.pokes)S.db.pokes={};
   S.db.pokes[other()]={from:S.user,ts:Date.now(),seen:false};
-  save();render();
+  gainXP(5);
+  render();
 }
 
 // ─── CARD RENDER ───────────────────────────────────────────────────────────
@@ -431,8 +467,11 @@ function pageOtro(){
   const od=S.db[other()],oName=USERS[other()].name,tasks=od.tasks||[],done=tasks.filter(t=>t.done);
   const otherPts=od.pts||0;
   const otherOwned=S.db.cards.filter(c=>(od.col||{})[c.id]>0).length;
+  const _oXp=od.xp||0,_oLv=getLevel(_oXp),_oRank=getRank(_oLv);
+  const _oRIcon=getRankIcon(_oRank);
+  const _oRankImg=_oRIcon?'<img src="'+esc(_oRIcon)+'" style="width:20px;height:20px;object-fit:contain">'  :'<span style="font-size:16px">'+getRankEmoji(_oRank)+'</span>';
   const prog=tasks.length?Math.round(done.length/tasks.length*100):0;
-  let html='<div style="max-width:580px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><div class="pf" style="font-size:11px;color:#ff69b4">💌 '+oName+'</div><div style="text-align:right"><div class="pf" style="font-size:6px;color:#555;margin-bottom:3px">Reinicia en</div><div class="pf timer-el" style="font-size:10px;color:#fbbf24">'+S.timer+'</div></div></div>';
+  let html='<div style="max-width:580px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><div style="display:flex;align-items:center;gap:8px">'+_oRankImg+'<div><div class="pf" style="font-size:11px;color:#ff69b4">💌 '+oName+'</div><div class="pf" style="font-size:6px;color:#60a5fa;margin-top:2px">Nv. '+_oLv+'</div></div></div><div style="text-align:right"><div class="pf" style="font-size:6px;color:#555;margin-bottom:3px">Reinicia en</div><div class="pf timer-el" style="font-size:10px;color:#fbbf24">'+S.timer+'</div></div></div>';
   html+='<div style="display:flex;gap:10px;margin-bottom:14px"><div style="background:#130820;border:1px solid #fbbf2422;border-radius:10px;padding:8px 12px;flex:1;text-align:center"><div class="pf" style="font-size:6px;color:#666;margin-bottom:3px">Puntos</div><div class="pf" style="font-size:13px;color:#fbbf24">'+otherPts+'</div></div><div style="background:#130820;border:1px solid #c084fc22;border-radius:10px;padding:8px 12px;flex:1;text-align:center"><div class="pf" style="font-size:6px;color:#666;margin-bottom:3px">Cartas</div><div class="pf" style="font-size:13px;color:#c084fc">'+otherOwned+'/'+S.db.cards.length+'</div></div></div>';
   if(tasks.length>0){
     html+='<div style="background:#130820;border:1px solid #ff69b422;border-radius:10px;padding:12px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span class="pf" style="font-size:7px;color:#c084fc">'+done.length+'/'+tasks.length+' hechas</span><span class="pf" style="font-size:7px;color:#fbbf24">⭐ '+done.reduce((s,t)=>s+t.pts,0)+'/'+tasks.reduce((s,t)=>s+t.pts,0)+'</span></div><div style="background:#07070f;border-radius:20px;height:7px;overflow:hidden"><div style="width:'+prog+'%;height:100%;background:linear-gradient(90deg,#ff69b4,#c084fc);border-radius:20px;transition:width .4s"></div></div></div>';
@@ -476,6 +515,10 @@ function pageAdmin(){
   const snds=S.db.sounds||{};
   let soundRows='';
   SND_DEFS.forEach(([k,l])=>{soundRows+='<div style="margin-bottom:10px"><div class="pf" style="font-size:6px;color:#c084fc;margin-bottom:4px">'+l+'</div><div style="display:flex;gap:6px"><input class="inp" id="snd-'+k+'" style="font-size:11px" placeholder="https://... (.mp3 / .ogg / .wav)" value="'+esc(snds[k]||'')+'"><button onclick="testSound(\''+k+'\')" style="flex-shrink:0;background:none;border:1px solid #a78bfa44;border-radius:6px;color:#a78bfa;cursor:pointer;padding:4px 10px;font-size:14px">▶</button></div></div>';});
+  let rankRows='';
+  const snds2=S.db.sounds||{};
+  RANK_DEFS.forEach(([k,l])=>{rankRows+='<div style="margin-bottom:10px"><div class="pf" style="font-size:6px;color:#60a5fa;margin-bottom:4px">'+l+'</div><div style="display:flex;gap:6px;align-items:center"><input class="inp" id="snd-'+k+'" style="font-size:11px" placeholder="URL imagen (.png/.jpg/.webp)" value="'+esc(snds2[k]||'')+'">'+((snds2[k]||'')?'<img src="'+esc(snds2[k])+'" style="width:32px;height:32px;object-fit:contain;border-radius:4px;flex-shrink:0">':'')+'</div></div>';});
+  html+='<div style="background:#130820;border:1px solid #60a5fa33;border-radius:12px;padding:16px;margin-bottom:18px"><div class="pf" style="font-size:8px;color:#60a5fa;margin-bottom:4px">✨ Iconos de Rango</div><div class="pf" style="font-size:6px;color:#555;margin-bottom:14px;line-height:1.8">URLs de imagen para cada rango.</div>'+rankRows+'<button class="btn" onclick="doSaveSounds()" style="width:100%;margin-top:4px;background:linear-gradient(135deg,#1d4ed8,#3b82f6)">Guardar iconos</button></div>';
   html+='<div style="background:#130820;border:1px solid #a78bfa33;border-radius:12px;padding:16px;margin-bottom:18px"><div class="pf" style="font-size:8px;color:#a78bfa;margin-bottom:4px">🔊 Sonidos</div><div class="pf" style="font-size:6px;color:#555;margin-bottom:14px;line-height:1.8">URLs de audio (.mp3/.ogg/.wav). Usa ▶ para probar antes de guardar.</div>'+soundRows+'<button class="btn" onclick="doSaveSounds()" style="width:100%;background:linear-gradient(135deg,#7c3aed,#a78bfa)">Guardar sonidos</button></div>';
   html+='<div style="margin-top:4px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn-g" onclick="doExport()">📦 Exportar backup</button><button class="btn-o" onclick="S.showImport=!S.showImport;render()">📥 Importar backup</button></div>';
   if(S.showImport){html+='<div style="margin-top:12px;background:#130820;border:1px solid #4ade8033;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px"><div class="pf" style="font-size:7px;color:#4ade80">Pega el backup JSON:</div><textarea id="import-ta" class="inp" rows="5"></textarea><div style="display:flex;gap:8px"><button class="btn-g" onclick="doImport()">Importar</button><button class="btn-o" onclick="S.showImport=false;render()">Cancelar</button></div></div>';}
@@ -486,6 +529,12 @@ function pageAdmin(){
 function pageMain(){
   const uInfo=USERS[S.user];
   const hasBgMusic=!!(S.db.sounds||{}).bgMusic;
+  const _xp=ud().xp||0,_lv=getLevel(_xp),_rank=getRank(_lv);
+  const _xpInLv=_xp-xpToReachLevel(_lv),_xpNeed=xpForNextLevel(_lv);
+  const _xpPct=Math.min(100,Math.round(_xpInLv/_xpNeed*100));
+  const _rIcon=getRankIcon(_rank);
+  const _rankImg=_rIcon?'<img src="'+esc(_rIcon)+'" style="width:18px;height:18px;object-fit:contain;flex-shrink:0">':'<span style="font-size:14px;flex-shrink:0">'+getRankEmoji(_rank)+'</span>';
+  const _xpBar='<div style="display:flex;align-items:center;gap:4px">'+_rankImg+'<div><div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">'+'<span class="pf" style="font-size:5px;color:#60a5fa">Nv.'+_lv+'</span>'+'<span class="pf" style="font-size:4px;color:#93c5fd">'+_xpInLv+'/'+_xpNeed+'</span></div>'+'<div style="background:#1e1040;border-radius:10px;width:62px;height:5px;overflow:hidden">'+'<div style="width:'+_xpPct+'%;height:100%;background:linear-gradient(90deg,#3b82f6,#60a5fa);border-radius:10px;transition:width .4s"></div>'+'</div></div></div>';
   const muteBtn=hasBgMusic?'<button id="mute-btn" onclick="toggleMute()" style="background:none;border:1px solid #a78bfa44;border-radius:6px;color:#a78bfa;cursor:pointer;padding:4px 8px;font-size:14px">'+(S.muted?'🔇':'🔊')+'</button>':'';
   let pageContent='';
   if(S.page==='checklist')pageContent=pageChecklist();
@@ -496,7 +545,7 @@ function pageMain(){
   else if(S.page==='album')pageContent=pageAlbum();
   const navSide=NAV.map(n=>'<button class="ns '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:15px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
   const navBot=NAV.map(n=>'<button class="nm '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:24px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
-  return '<div style="min-height:100vh"><header style="background:#0f0620;border-bottom:2px solid #ff69b422;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100"><div><div class="pf" style="font-size:8px;color:#ff69b4;line-height:1.9">🕊️ Paloma</div><div class="pf" style="font-size:5px;color:#c084fc">Checklists</div></div><div style="display:flex;align-items:center;gap:9px"><div style="background:#1a0a2e;border:1px solid #fbbf2444;border-radius:20px;padding:4px 11px"><span class="pf" style="font-size:9px;color:#fbbf24">⭐ '+ud().pts+'</span></div><span class="pf" style="font-size:7px;color:'+uInfo.c+'">'+uInfo.name+'</span>'+muteBtn+'<button onclick="S.user=null;S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;if(bgAudio){bgAudio.pause();bgAudio=null;}render()" style="background:none;border:1px solid #ff69b433;border-radius:6px;color:#ff69b4;cursor:pointer;padding:4px 8px;font-size:13px">✕</button></div></header><div style="display:flex"><div class="snav" style="width:186px;background:#0c0618;border-right:1px solid #ff69b411;padding:12px 8px;display:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto;flex-shrink:0">'+navSide+'</div><main style="flex:1;padding:14px;overflow-y:auto;min-height:calc(100vh - 52px)" class="mpb">'+pageContent+'</main></div><nav class="bnav" style="position:fixed;bottom:0;left:0;right:0;background:#0c0618;border-top:1px solid #ff69b422;z-index:100;display:none">'+navBot+'</nav></div>';
+  return '<div style="min-height:100vh"><header style="background:#0f0620;border-bottom:2px solid #ff69b422;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100"><div><div class="pf" style="font-size:8px;color:#ff69b4;line-height:1.9">🕊️ Paloma</div><div class="pf" style="font-size:5px;color:#c084fc">Checklists</div></div><div style="display:flex;align-items:center;gap:9px"><div style="background:#1a0a2e;border:1px solid #fbbf2444;border-radius:20px;padding:4px 11px"><span class="pf" style="font-size:9px;color:#fbbf24">⭐ '+ud().pts+'</span></div><span class="pf" style="font-size:7px;color:'+uInfo.c+'">'+uInfo.name+'</span>'+_xpBar+muteBtn+'<button onclick="S.user=null;S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;if(bgAudio){bgAudio.pause();bgAudio=null;}render()" style="background:none;border:1px solid #ff69b433;border-radius:6px;color:#ff69b4;cursor:pointer;padding:4px 8px;font-size:13px">✕</button></div></header><div style="display:flex"><div class="snav" style="width:186px;background:#0c0618;border-right:1px solid #ff69b411;padding:12px 8px;display:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto;flex-shrink:0">'+navSide+'</div><main style="flex:1;padding:14px;overflow-y:auto;min-height:calc(100vh - 52px)" class="mpb">'+pageContent+'</main></div><nav class="bnav" style="position:fixed;bottom:0;left:0;right:0;background:#0c0618;border-top:1px solid #ff69b422;z-index:100;display:none">'+navBot+'</nav></div>';
 }
 
 // ─── RENDER ────────────────────────────────────────────────────────────────
@@ -539,7 +588,7 @@ function doToggleTask(id){
   const task=S.db[S.user].tasks.find(t=>t.id===id);
   if(!task)return;
   task.done=!task.done;
-  if(task.done)playSound('completeTask');
+  if(task.done){playSound('completeTask');gainXP(task.pts);}
   S.db[S.user].pts=Math.max(0,S.db[S.user].pts+(task.done?task.pts:-task.pts));
   save();
 }
@@ -557,6 +606,7 @@ function doBuyPack(type){
   cards.forEach(c=>{S.db[S.user].col[c.id]=(S.db[S.user].col[c.id]||0)+1});
   S.db[S.user].pts-=cfg.cost;
   save();
+  gainXP(cfg.cost);
   playSound('openPack');
   S.pack={type,cards,revealed:0};
   render();
@@ -579,6 +629,13 @@ function doTrade(tid,accept){
     const fc=S.db[tr.from].col,tc=S.db[tr.to].col;
     if((fc[tr.offered]||0)>0)fc[tr.offered]--;fc[tr.requested]=(fc[tr.requested]||0)+1;
     if((tc[tr.requested]||0)>0)tc[tr.requested]--;tc[tr.offered]=(tc[tr.offered]||0)+1;
+    const _oLvT=getLevel(S.db[S.user].xp||0);
+    S.db[tr.from].xp=(S.db[tr.from].xp||0)+20;
+    S.db[tr.to].xp=(S.db[tr.to].xp||0)+20;
+    const _nLvT=getLevel(S.db[S.user].xp);
+    save();
+    showXPEffect(20,_nLvT>_oLvT);
+    return;
   }
   save();
 }
