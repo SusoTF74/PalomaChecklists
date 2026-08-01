@@ -672,7 +672,7 @@ function pageEventos(){
         html+='<div style="background:#0d0618;border:1px solid '+(done?'#4ade8033':'#ff69b422')+';border-radius:10px;padding:10px">';
         html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span class="pf" style="font-size:7px;color:'+(done?'#4ade80':'#f0d6ff')+'">'+esc(task.title)+'</span><div style="display:flex;gap:6px;flex-shrink:0"><span class="pf" style="font-size:6px;color:#fbbf24">⭐'+task.pts+'</span><span class="pf" style="font-size:6px;color:#60a5fa">+'+task.xp+'XP</span></div></div>';
         html+='<div style="display:flex;align-items:center;gap:8px">';
-        html+='<button onclick="updateEventProgress(\''+evt.id+'\',\''+task.id+'\',-1)" style="background:#ff69b411;border:1px solid #ff69b444;border-radius:6px;color:#ff69b4;cursor:pointer;padding:2px 12px;font-size:18px;font-family:monospace;flex-shrink:0">-</button>';
+        html+=(ep.tasksRewarded&&ep.tasksRewarded[task.id])?'<button disabled style="background:#07070f;border:1px solid #333;border-radius:6px;color:#444;cursor:not-allowed;padding:2px 12px;font-size:18px;font-family:monospace;flex-shrink:0">-</button>':'<button onclick="updateEventProgress(\''+evt.id+'\',\''+task.id+'\',-1)" style="background:#ff69b411;border:1px solid #ff69b444;border-radius:6px;color:#ff69b4;cursor:pointer;padding:2px 12px;font-size:18px;font-family:monospace;flex-shrink:0">-</button>';;
         html+='<div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span class="pf" style="font-size:6px;color:#888">'+cur+'/'+task.target+'</span></div><div style="background:#07070f;border-radius:20px;height:7px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+(done?'linear-gradient(90deg,#4ade80,#22d3ee)':'linear-gradient(90deg,#ff69b4,#c084fc)')+';border-radius:20px;transition:width .3s"></div></div></div>';
         html+='<button onclick="updateEventProgress(\''+evt.id+'\',\''+task.id+'\',1)" style="background:#ff69b411;border:1px solid #ff69b444;border-radius:6px;color:#ff69b4;cursor:pointer;padding:2px 12px;font-size:18px;font-family:monospace;flex-shrink:0">+</button>';
         html+='</div></div>';
@@ -993,5 +993,3 @@ setInterval(()=>{
 },1000);
 </script>
 </body>
-        const _minusBtn=(ep.tasksRewarded&&ep.tasksRewarded[task.id])?'<button disabled style="background:#07070f;border:1px solid #333;border-radius:6px;color:#444;cursor:not-allowed;padding:2px 12px;font-size:18px;font-family:monospace;flex-shrink:0">-</button>':'<button onclick="updateEventProgress(&quot;'+evt.id+'&quot;,&quot;'+task.id+'&quot;,-1)" style="background:#ff69b411;border:1px solid #ff69b444;border-radius:6px;color:#ff69b4;cursor:pointer;padding:2px 12px;font-size:18px;font-family:monospace;flex-shrink:0">-</button>';
-        html+=_minusBtn;
