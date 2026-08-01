@@ -236,6 +236,23 @@ function doSaveSounds(){
 }
 
 // ─── XP SYSTEM ────────────────────────────────────────────────────
+function canaryDateTimeToUTC(dateStr,timeStr){
+  if(!dateStr)return Date.now();
+  try{
+    const guess=new Date(dateStr+'T'+timeStr+':00');
+    const guessCanary=guess.toLocaleString('sv-SE',{timeZone:'Atlantic/Canary'}).replace(' ','T');
+    const guessLocal=guess.toLocaleString('sv-SE').replace(' ','T');
+    const diff=new Date(guessCanary)-new Date(guessLocal);
+    return guess.getTime()-diff;
+  }catch(e){return Date.now();}
+}
+function canaryDateTimeStr(ts){
+  try{
+    const d=new Date(ts);
+    const s=d.toLocaleString('sv-SE',{timeZone:'Atlantic/Canary'});
+    return{date:s.slice(0,10),time:s.slice(11,16)};
+  }catch(e){return{date:'',time:'23:59'};}
+}
 function xpToReachLevel(lv){if(lv<=1)return 0;return 82*(lv-1)*lv/2;}
 function getLevel(xp){xp=xp||0;let lv=1;while(xpToReachLevel(lv+1)<=xp)lv++;return lv;}
 function xpForNextLevel(lv){return 82*lv;}
@@ -754,6 +771,7 @@ function doRemoveEventTask(id){
   render();window.scrollTo(0,99999);
 }
 function doCreateEvent(){
+  try{
   saveAdminEvtForm();
   if(!_adminEvt.title||_adminEvtTasks.length===0||!_adminEvt.rewardTitle){flashAdmin('❌ Faltan: título, tareas o carta recompensa');return;}
   if(!_adminEvt.endDateStr){flashAdmin('❌ Falta la fecha de fin');return;}
@@ -777,6 +795,7 @@ function doCreateEvent(){
   _adminEvtTasks=[];
   _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',endDateStr:'',endTimeStr:'23:59'};
   save();render();
+  }catch(e){console.error('doCreateEvent error:',e);flashAdmin('❌ Error: '+e.message);}
 }
 function doDeleteEvent(id){
   if(!confirm('¿Eliminar este evento?'))return;
