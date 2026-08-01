@@ -222,6 +222,7 @@ function testSound(key){
 function doSaveSounds(){
   const s={};
   SND_DEFS.forEach(([k])=>{const el=document.getElementById('snd-'+k);s[k]=el?el.value.trim():'';});
+  RANK_DEFS.forEach(([k])=>{const el=document.getElementById('snd-'+k);s[k]=el?el.value.trim():'';});
   S.db.sounds=s;save();startBgMusic();preloadSounds();
   flashAdmin('✅ Sonidos guardados');
 }
@@ -236,7 +237,7 @@ function getRankEmoji(rank){return{bronze:'🥉',silver:'🥈',gold:'🥇',plati
 function showXPEffect(amount,leveled){
   const el=document.createElement('div');
   el.textContent='+'+amount+' XP';
-  el.style.cssText="position:fixed;top:58px;right:16px;z-index:900;font-family:'Press Start 2P',monospace;font-size:9px;color:#fbbf24;text-shadow:0 0 8px #fbbf2488;pointer-events:none;animation:floatUp 1.5s ease-out forwards;";
+  el.style.cssText="position:fixed;top:58px;right:16px;z-index:900;font-family:'Press Start 2P',monospace;font-size:9px;color:#60a5fa;text-shadow:0 0 8px #3b82f688;pointer-events:none;animation:floatUp 1.5s ease-out forwards;";
   document.body.appendChild(el);
   setTimeout(()=>el.remove(),1600);
   if(leveled){
@@ -569,7 +570,7 @@ function renderPtsButtons(){document.getElementById('pts-buttons').innerHTML=PTS
 function togglePw(){const i=document.getElementById('lpw');i.type=i.type==='password'?'text':'password'}
 
 function doLogin(){
-  const pw=document.getElementById('lpw').value;
+  const pw=document.getElementById('lpw').value.trim();
   const lerr=document.getElementById('lerr');
   if(pw===USERS.julia.pw){S.user='julia';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();setTimeout(checkPendingPoke,800);return}
   if(pw===USERS.jesus.pw){S.user='jesus';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();preloadSounds();setTimeout(checkPendingPoke,800);return}
