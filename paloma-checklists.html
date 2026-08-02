@@ -136,6 +136,23 @@ function save(){
 }
 function toArr(v){if(!v)return[];if(Array.isArray(v))return v;return Object.values(v);}
 
+function getLastWeeklyResetDate(){
+  // Devuelve la fecha canaria (YYYY-MM-DD) del último domingo que ya debería haber reseteado
+  // Si hoy es domingo pero antes de las 23:59, cuenta el domingo de la semana pasada
+  try{
+    const now=new Date();
+    const p=new Intl.DateTimeFormat('en-US',{timeZone:'Atlantic/Canary',weekday:'short',hour:'numeric',minute:'numeric',hour12:false}).formatToParts(now);
+    const wd=p.find(x=>x.type==='weekday').value;
+    const h=+p.find(x=>x.type==='hour').value,m=+p.find(x=>x.type==='minute').value;
+    const dMap={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+    let dBack=dMap[wd]||0;
+    if(dBack===0&&(h<23||(h===23&&m<59)))dBack=7;
+    const sun=new Date(now.getTime()-dBack*86400000);
+    return new Intl.DateTimeFormat('sv-SE',{timeZone:'Atlantic/Canary'}).format(sun);
+  }catch{return '';}
+}
+
+
 function startSync(){
   DB_REF.on('value', snapshot=>{
     const data=snapshot.val();
@@ -169,11 +186,11 @@ function startSync(){
         if(!data[u].weeklyTasks)data[u].weeklyTasks=[];
         if(!data[u].monthlyTasks)data[u].monthlyTasks=[];
       });
-      // Weekly reset: if 7+ days since last reset
-      if(data.lastWeeklyReset){
-        const _wDiff=(new Date(canaryDate())-new Date(data.lastWeeklyReset))/86400000;
-        if(_wDiff>=7){data.lastWeeklyReset=canaryDate();data.julia.weeklyTasks=[];data.jesus.weeklyTasks=[];}
-      }else{data.lastWeeklyReset=canaryDate();}
+      // Weekly reset: compara con el último domingo que debió resetear
+      const _lastSun=getLastWeeklyResetDate();
+      if(_lastSun&&(!data.lastWeeklyReset||data.lastWeeklyReset<_lastSun)){
+        data.lastWeeklyReset=_lastSun;data.julia.weeklyTasks=[];data.jesus.weeklyTasks=[];
+      }else if(!data.lastWeeklyReset){data.lastWeeklyReset=_lastSun||canaryDate();}
       // Monthly reset
       const _curMonth=canaryDate().slice(0,7);
       if(data.lastMonthlyReset&&data.lastMonthlyReset!==_curMonth){
@@ -1635,13 +1652,13 @@ setInterval(()=>{
       save();render();
     }
     const _wd=new Intl.DateTimeFormat('en-US',{timeZone:'Atlantic/Canary',weekday:'short'}).format(new Date());
-    if(_wd==='Sun'&&h===23&&m===59&&sv===0&&S.db){
+    if(_wd==='Sun'&&h===23&&m===59&&sv<=2&&S.db&&S.db.lastWeeklyReset!==canaryDate()){
       S.db.lastWeeklyReset=canaryDate();
       S.db.julia.weeklyTasks=[];S.db.jesus.weeklyTasks=[];
       save();render();
     }
     const _d=+new Intl.DateTimeFormat('en-US',{timeZone:'Atlantic/Canary',day:'2-digit'}).format(new Date());
-    if(_d===1&&h===0&&m===0&&sv===0&&S.db){
+    if(_d===1&&h===0&&m===0&&sv<=2&&S.db&&S.db.lastMonthlyReset!==canaryDate().slice(0,7)){
       S.db.lastMonthlyReset=canaryDate().slice(0,7);
       S.db.julia.monthlyTasks=[];S.db.jesus.monthlyTasks=[];
       save();render();
