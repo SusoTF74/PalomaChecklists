@@ -118,7 +118,7 @@ function rollPack(type,pool){
   if(cfg.epic){
     const hasEpic=drawn.some(c=>c.rarity==='epica'||c.rarity==='legendaria');
     if(!hasEpic){
-      let ep=pool.filter(c=>c.rarity==='epica'||c.rarity==='legendaria');
+      let ep=pool.filter(c=>c.rarity==='epica');
       if(!ep.length)ep=pool.filter(c=>c.rarity==='rara');
       if(!ep.length)ep=pool;
       drawn[drawn.length-1]=ep[Math.floor(Math.random()*ep.length)];
