@@ -581,6 +581,9 @@ function pageIntercambios(){
 
 function pageOtro(){
   const otroMode=S.otroChecklistMode||'daily';
+  const _oTimer=otroMode==='weekly'?S.weeklyTimer:otroMode==='monthly'?S.monthlyTimer:S.timer;
+  const _oTimerCls=otroMode==='weekly'?'timer-weekly':otroMode==='monthly'?'timer-monthly':'timer-el';
+  const _oTimerLbl=otroMode==='weekly'?'Reinicia el domingo en':otroMode==='monthly'?'Reinicia el día 1 en':'Reinicia en';
   const od=S.db[other()],oName=USERS[other()].name;
   const tasks=(otroMode==='weekly'?od.weeklyTasks:otroMode==='monthly'?od.monthlyTasks:od.tasks)||[];
   const done=tasks.filter(t=>t.done);
@@ -592,7 +595,7 @@ function pageOtro(){
   const _oRIcon=getRankIcon(_oRank);
   const _oRankImg=_oRIcon?'<img src="'+esc(_oRIcon)+'" style="width:20px;height:20px;object-fit:contain">'  :'<span style="font-size:16px">'+getRankEmoji(_oRank)+'</span>';
   const prog=tasks.length?Math.round(done.length/tasks.length*100):0;
-  let html='<div style="max-width:580px"><div style="display:flex;gap:7px;margin-bottom:12px">'+checklistModeTabs(otroMode,'otroChecklistMode')+'</div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><div style="display:flex;align-items:center;gap:8px">'+_oRankImg+'<div><div class="pf" style="font-size:11px;color:#ff69b4">💌 '+oName+'</div><div class="pf" style="font-size:6px;color:#60a5fa;margin-top:2px">Nv. '+_oLv+'</div></div></div><div style="text-align:right"><div class="pf" style="font-size:6px;color:#555;margin-bottom:3px">Reinicia en</div><div class="pf timer-el" style="font-size:10px;color:#fbbf24">'+S.timer+'</div></div></div>';
+  let html='<div style="max-width:580px"><div style="display:flex;gap:7px;margin-bottom:12px">'+checklistModeTabs(otroMode,'otroChecklistMode')+'</div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><div style="display:flex;align-items:center;gap:8px">'+_oRankImg+'<div><div class="pf" style="font-size:11px;color:#ff69b4">💌 '+oName+'</div><div class="pf" style="font-size:6px;color:#60a5fa;margin-top:2px">Nv. '+_oLv+'</div></div></div><div style="text-align:right"><div class="pf" style="font-size:6px;color:#555;margin-bottom:3px">'+_oTimerLbl+'</div><div class="pf '+_oTimerCls+'" style="font-size:10px;color:#fbbf24">'+_oTimer+'</div></div></div>';
 const _oAchs=S.db.achievements||[];
   const _oAchAp=S.db[other()].achievementProgress||{};
   const _oAchUnlocked=_oAchs.filter(a=>_oAchAp[a.id]&&_oAchAp[a.id].unlocked).length;
@@ -1015,7 +1018,8 @@ function pageLogros(){
   const ap=ud().achievementProgress||{};
   const _lockImg=(S.db.sounds||{}).lockedAchImage||'';
   const cats=Object.keys(ACH_CATS);
-  let html='<div style="max-width:680px"><div class="pf" style="font-size:11px;color:#fbbf24;margin-bottom:18px">🏆 Logros</div>';
+  const _totalAchs=achs.length,_unlockedCount=achs.filter(a=>ap[a.id]&&ap[a.id].unlocked).length;
+  let html='<div style="max-width:680px"><div style="display:flex;align-items:baseline;gap:12px;margin-bottom:18px"><div class="pf" style="font-size:11px;color:#fbbf24">🏆 Logros</div>'+(_totalAchs>0?'<div class="pf" style="font-size:8px;color:#60a5fa">'+_unlockedCount+'/'+_totalAchs+'</div>':'')+'</div>';
   let anyAch=false;
   cats.forEach(cat=>{
     const catAchs=achs.filter(a=>a.category===cat).sort((a,b)=>a.required-b.required);
