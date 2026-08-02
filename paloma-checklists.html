@@ -540,7 +540,7 @@ function pageColeccion(){
   let html='<div style="max-width:820px"><div class="pf" style="font-size:11px;color:#ff69b4;margin-bottom:4px">🃏 Mi Colección</div><div class="pf" style="font-size:7px;color:#666;margin-bottom:14px">'+owned+'/'+pool.length+' únicas</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px">'+filters+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px">'+grid+'</div>';
   if(S.inspect){
     const c=S.inspect,q=(col[c.id]||0);
-    html+='<div class="overlay" onclick="S.inspect=null;render()"><div onclick="event.stopPropagation()" style="display:flex;flex-direction:column;align-items:center;gap:16px"><div style="transform:scale(1.7);transform-origin:center top;margin-bottom:80px">'+cardHTML(c)+'</div><div class="pf" style="font-size:7px;color:#888">'+q+' en tu colección</div><button class="btn-o" onclick="S.inspect=null;render()">Cerrar</button></div></div>';
+    html+='<div class="overlay" onclick="S.inspect=null;render()"><div onclick="event.stopPropagation()" style="display:flex;flex-direction:column;align-items:center;gap:16px"><div style="transform:scale(1.7);transform-origin:center top;margin-bottom:80px">'+cardHTML(c)+'</div><div class="pf" style="font-size:7px;color:#888">'+q+' en tu colección</div><button class="btn" onclick="downloadCardAsPNG(S.inspect)" style="background:linear-gradient(135deg,#3b82f6,#60a5fa)">&#128229; Descargar PNG</button><button class="btn-o" onclick="S.inspect=null;render()">Cerrar</button></div></div>';
   }
   html+='</div>';
   return html;
@@ -596,7 +596,7 @@ function pageOtro(){
 const _oAchs=S.db.achievements||[];
   const _oAchAp=S.db[other()].achievementProgress||{};
   const _oAchUnlocked=_oAchs.filter(a=>_oAchAp[a.id]&&_oAchAp[a.id].unlocked).length;
-    html+='<div style="display:flex;gap:10px;margin-bottom:14px"><div style="background:#130820;border:1px solid #fbbf2422;border-radius:10px;padding:8px 12px;flex:1;text-align:center"><div class="pf" style="font-size:6px;color:#666;margin-bottom:3px">Puntos</div><div class="pf" style="font-size:13px;color:#fbbf24">'+otherPts+'</div></div><div style="background:#130820;border:1px solid #c084fc22;border-radius:10px;padding:8px 12px;flex:1;text-align:center"><div class="pf" style="font-size:6px;color:#666;margin-bottom:3px">Cartas</div><div class="pf" style="font-size:13px;color:#c084fc">'+otherOwned+'/'+_totalCards+'</div></div><div onclick="S.showOtherAchs=true;render()" style="background:#130820;border:1px solid #fbbf2422;border-radius:10px;padding:8px 12px;flex:1;text-align:center;cursor:pointer"><div class=\"pf\" style=\"font-size:6px;color:#666;margin-bottom:3px\">Logros</div><div class=\"pf\" style=\"font-size:13px;color:#fbbf24\">'+_oAchUnlocked+'/'+_oAchs.length+'</div></div></div>';
+    html+='<div style="display:flex;gap:10px;margin-bottom:14px"><div style="background:#130820;border:1px solid #60a5fa22;border-radius:10px;padding:8px 12px;flex:1;text-align:center"><div class="pf" style="font-size:6px;color:#666;margin-bottom:3px">Puntos</div><div class="pf" style="font-size:13px;color:#60a5fa">'+otherPts+'</div></div><div style="background:#130820;border:1px solid #c084fc22;border-radius:10px;padding:8px 12px;flex:1;text-align:center"><div class="pf" style="font-size:6px;color:#666;margin-bottom:3px">Cartas</div><div class="pf" style="font-size:13px;color:#c084fc">'+otherOwned+'/'+_totalCards+'</div></div><div onclick="S.showOtherAchs=true;render()" style="background:#130820;border:1px solid #60a5fa22;border-radius:10px;padding:8px 12px;flex:1;text-align:center;cursor:pointer"><div class=\"pf\" style=\"font-size:6px;color:#666;margin-bottom:3px\">Logros</div><div class=\"pf\" style=\"font-size:13px;color:#60a5fa\">'+_oAchUnlocked+'/'+_oAchs.length+'</div></div></div>';
   
   if(S.showOtherAchs){
     const _unlAchs=_oAchs.filter(a=>_oAchAp[a.id]&&_oAchAp[a.id].unlocked);
@@ -1022,7 +1022,7 @@ function pageLogros(){
     anyAch=true;
     const cur=getUserProgress(cat);
     html+='<div style="margin-bottom:24px"><div class="pf" style="font-size:8px;color:#fbbf24;margin-bottom:12px">'+ACH_CATS[cat].lbl+'</div>';
-    html+='<div style="display:flex;flex-wrap:wrap;gap:14px">';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center">';
     catAchs.forEach(ach=>{
       const prog=ap[ach.id]||{unlocked:false};
       const done=prog.unlocked;
@@ -1098,6 +1098,58 @@ function doDeleteAchievement(id){
   if(!confirm('¿Eliminar este logro?'))return;
   S.db.achievements=(S.db.achievements||[]).filter(a=>a.id!==id);
   save();render();
+}
+
+
+async function downloadCardAsPNG(card){
+  if(!card)return;
+  const r=R[card.rarity]||R.comun;
+  const leg=card.rarity==='legendaria';
+  const sc=3;
+  const W=148*sc,pad=9*sc,bw=3*sc;
+  const titleFontSz=7*sc,descFontSz=5*sc,rarFontSz=5*sc;
+  const lineH=titleFontSz*1.7,descLH=descFontSz*1.6;
+  await document.fonts.ready;
+  const cvs=document.createElement('canvas');cvs.width=W;cvs.height=10;
+  let ctx=cvs.getContext('2d');
+  ctx.font=`${titleFontSz}px 'Press Start 2P',monospace`;
+  const titleWords=(card.title||'???').split(' ');
+  const maxW=W-2*pad;let tl=[],tLine='';
+  for(const w of titleWords){const t=tLine+(tLine?' ':'')+w;if(ctx.measureText(t).width>maxW&&tLine){tl.push(tLine);tLine=w;}else tLine=t;}
+  if(tLine)tl.push(tLine);
+  const titleH=Math.max(1,tl.length)*lineH;
+  const imgSize=W-2*pad;
+  ctx.font=`${descFontSz}px monospace`;
+  const dWords=(card.description||'Sin descripción').split(' ');let dLines=[],dL='';
+  for(const w of dWords){const t=dL+(dL?' ':'')+w;if(ctx.measureText(t).width>maxW&&dL){dLines.push(dL);dL=w;}else dL=t;}
+  if(dL)dLines.push(dL);
+  const descH=Math.max(3,dLines.length)*descLH;
+  const H=pad+titleH+6*sc+imgSize+8*sc+descH+10*sc+rarFontSz*2+pad;
+  cvs.width=W;cvs.height=Math.ceil(H);ctx=cvs.getContext('2d');
+  await document.fonts.ready;
+  function rr(x,y,w,h,rv){ctx.beginPath();if(ctx.roundRect){ctx.roundRect(x,y,w,h,rv);}else{ctx.moveTo(x+rv,y);ctx.lineTo(x+w-rv,y);ctx.quadraticCurveTo(x+w,y,x+w,y+rv);ctx.lineTo(x+w,y+h-rv);ctx.quadraticCurveTo(x+w,y+h,x+w-rv,y+h);ctx.lineTo(x+rv,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-rv);ctx.lineTo(x,y+rv);ctx.quadraticCurveTo(x,y,x+rv,y);}ctx.closePath();}
+  const bgMap={comun:['#1a1a2e','#0d0d1a'],poco_comun:['#051828','#02101e'],rara:['#041a08','#021008'],epica:['#1a0530','#0d0118'],legendaria:['#1a0e00','#100900'],evento:['#2a0520','#1a030f']};
+  const [c1,c2]=bgMap[card.rarity]||bgMap.comun;
+  const gr=ctx.createLinearGradient(0,0,W*0.6,H);gr.addColorStop(0,c1);gr.addColorStop(1,c2);
+  rr(0,0,W,H,8*sc);ctx.fillStyle=gr;ctx.fill();
+  if(r.glow){ctx.shadowColor=r.b;ctx.shadowBlur=12*sc;}
+  ctx.strokeStyle=leg?'#ff69b4':r.b;ctx.lineWidth=bw;
+  rr(bw/2,bw/2,W-bw,H-bw,7*sc);ctx.stroke();ctx.shadowBlur=0;
+  ctx.fillStyle=r.tc;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font=`${titleFontSz}px 'Press Start 2P',monospace`;
+  tl.forEach((l,i)=>ctx.fillText(l,W/2,pad+(i+0.5)*lineH));
+  const imgTop=pad+titleH+6*sc;
+  rr(pad,imgTop,imgSize,imgSize,4*sc);ctx.fillStyle='#070712';ctx.fill();
+  ctx.strokeStyle=r.b+'55';ctx.lineWidth=sc;rr(pad,imgTop,imgSize,imgSize,4*sc);ctx.stroke();
+  if(card.image){try{const img=new Image();img.crossOrigin='anonymous';await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=card.image;});ctx.save();rr(pad,imgTop,imgSize,imgSize,4*sc);ctx.clip();ctx.drawImage(img,pad,imgTop,imgSize,imgSize);ctx.restore();}catch(e){}}
+  const descTop=imgTop+imgSize+8*sc;
+  ctx.fillStyle='#888888';ctx.font=`${descFontSz}px monospace`;ctx.textAlign='left';ctx.textBaseline='top';
+  dLines.forEach((l,i)=>ctx.fillText(l,pad,descTop+i*descLH));
+  ctx.fillStyle=r.tc;ctx.font=`${rarFontSz}px 'Press Start 2P',monospace`;ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText(r.lbl.toUpperCase(),W/2,H-pad/2);
+  const a=document.createElement('a');
+  a.download=((card.title||'carta').replace(/[^\w\s]/g,'').trim().replace(/\s+/g,'_')||'carta')+'.png';
+  a.href=cvs.toDataURL('image/png');a.click();
 }
 
 
