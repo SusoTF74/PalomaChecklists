@@ -93,7 +93,7 @@ const RANK_DEFS=[['rankBronze','🥉 Icono Bronce (nv. 1-24)'],['rankSilver','�
 const SND_DEFS=[['bgMusic','🎵 Música de fondo (bucle)'],['addTask','✅ Añadir tarea'],['completeTask','✓ Completar tarea'],['requestTrade','📤 Enviar intercambio'],['acceptTrade','🤝 Aceptar intercambio'],['openPack','📦 Abrir sobre'],['comun','⬜ Revelar carta Común'],['poco_comun','💙 Revelar carta Poco Común'],['rara','💚 Revelar carta Rara'],['epica','💜 Revelar carta Épica'],['legendaria','⭐ Revelar carta Legendaria'],['toque','🔔 Recibir un toque'],['levelUp','🎵 Sonido Level Up'],['achievement','🏆 Desbloquear logro']];
 
 // ─── STATE ─────────────────────────────────────────────────────────────────
-let S={user:null,page:'checklist',db:null,timer:'--:--:--',selPts:10,pack:null,inspect:null,myCard:null,thCard:null,rarFilt:'all',adminEditId:null,showImport:false,adminRarity:'comun',muted:false,loading:true,inspectAch:null,showOtherAchs:false};
+let S={user:null,page:'checklist',db:null,timer:'--:--:--',selPts:10,pack:null,inspect:null,myCard:null,thCard:null,rarFilt:'all',adminEditId:null,showImport:false,adminRarity:'comun',muted:false,loading:true,inspectAch:null,showOtherAchs:false,checklistMode:'daily',otroChecklistMode:'daily',weeklyTimer:'--d --:--:--',monthlyTimer:'--d --:--:--'};
 
 // ─── UTILS ─────────────────────────────────────────────────────────────────
 function uid(){return Math.random().toString(36).slice(2,10)}
@@ -126,7 +126,7 @@ function rollPack(type,pool){
   }
   return drawn;
 }
-function initDB(){return{lastReset:canaryDate(),julia:{pts:0,tasks:[],col:{},xp:0,eventProgress:{},achievementProgress:{},tasksCompleted:0,tradesCompleted:0,toquesSent:0},jesus:{pts:0,tasks:[],col:{},xp:0,eventProgress:{},achievementProgress:{},tasksCompleted:0,tradesCompleted:0,toquesSent:0},cards:[],trades:[],sounds:{},toques:{},events:[],achievements:[]}}
+function initDB(){return{lastReset:canaryDate(),julia:{pts:0,tasks:[],weeklyTasks:[],monthlyTasks:[],col:{},xp:0,eventProgress:{},achievementProgress:{},tasksCompleted:0,tradesCompleted:0,toquesSent:0},jesus:{pts:0,tasks:[],weeklyTasks:[],monthlyTasks:[],col:{},xp:0,eventProgress:{},achievementProgress:{},tasksCompleted:0,tradesCompleted:0,toquesSent:0},cards:[],trades:[],sounds:{},toques:{},events:[],achievements:[],lastWeeklyReset:'',lastMonthlyReset:''}}
 function ud(){return S.db[S.user]}
 function other(){return S.user==='julia'?'jesus':'julia'}
 
@@ -160,6 +160,22 @@ function startSync(){
       if(!data.pokes)data.pokes={};
       if(!data.events)data.events=[];
       if(!data.achievements)data.achievements=[];
+      if(!data.lastWeeklyReset)data.lastWeeklyReset='';
+      if(!data.lastMonthlyReset)data.lastMonthlyReset='';
+      ['julia','jesus'].forEach(u=>{
+        if(!data[u].weeklyTasks)data[u].weeklyTasks=[];
+        if(!data[u].monthlyTasks)data[u].monthlyTasks=[];
+      });
+      // Weekly reset: if 7+ days since last reset
+      if(data.lastWeeklyReset){
+        const _wDiff=(new Date(canaryDate())-new Date(data.lastWeeklyReset))/86400000;
+        if(_wDiff>=7){data.lastWeeklyReset=canaryDate();data.julia.weeklyTasks=[];data.jesus.weeklyTasks=[];}
+      }else{data.lastWeeklyReset=canaryDate();}
+      // Monthly reset
+      const _curMonth=canaryDate().slice(0,7);
+      if(data.lastMonthlyReset&&data.lastMonthlyReset!==_curMonth){
+        data.lastMonthlyReset=_curMonth;data.julia.monthlyTasks=[];data.jesus.monthlyTasks=[];
+      }else if(!data.lastMonthlyReset){data.lastMonthlyReset=_curMonth;}
       ['julia','jesus'].forEach(u=>{if(!data[u].achievementProgress)data[u].achievementProgress={};if(!data[u].tasksCompleted)data[u].tasksCompleted=0;if(!data[u].tradesCompleted)data[u].tradesCompleted=0;if(!data[u].toquesSent)data[u].toquesSent=0;});
       if(!data.julia.eventProgress)data.julia.eventProgress={};
       if(!data.jesus.eventProgress)data.jesus.eventProgress={};
@@ -382,6 +398,50 @@ function mysteryCard(card){
 }
 
 // ─── PAGES ─────────────────────────────────────────────────────────────────
+function calcWeeklyTimer(){
+  try{
+    const p=new Intl.DateTimeFormat('en-US',{timeZone:'Atlantic/Canary',weekday:'short',hour:'numeric',minute:'numeric',second:'numeric',hour12:false}).formatToParts(new Date());
+    const h=+p.find(x=>x.type==='hour').value,m=+p.find(x=>x.type==='minute').value,s=+p.find(x=>x.type==='second').value;
+    const wd=p.find(x=>x.type==='weekday').value;
+    const dMap={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+    const curSec=h*3600+m*60+s,tgtSec=23*3600+59*60;
+    let diff=dMap[wd]===0&&curSec<=tgtSec?tgtSec-curSec:(7-dMap[wd])*86400+(tgtSec-curSec);
+    if(diff<0)diff+=7*86400;
+    const d=Math.floor(diff/86400),hh=Math.floor((diff%86400)/3600),mm=Math.floor((diff%3600)/60),ss=diff%60;
+    return d+'d '+[hh,mm,ss].map(x=>String(x).padStart(2,'0')).join(':');
+  }catch{return '--d --:--:--'}
+}
+function calcMonthlyTimer(){
+  try{
+    const p=new Intl.DateTimeFormat('en-US',{timeZone:'Atlantic/Canary',year:'numeric',month:'2-digit',day:'2-digit',hour:'numeric',minute:'numeric',second:'numeric',hour12:false}).formatToParts(new Date());
+    const get=t=>+p.find(x=>x.type===t).value;
+    let ny=get('year'),nm=get('month')+1;if(nm>12){nm=1;ny++;}
+    const nextFirst=`${ny}-${String(nm).padStart(2,'0')}-01`;
+    const diff=Math.max(0,Math.floor((canaryDateTimeToUTC(nextFirst,'00:00')-Date.now())/1000));
+    const d=Math.floor(diff/86400),hh=Math.floor((diff%86400)/3600),mm=Math.floor((diff%3600)/60),ss=diff%60;
+    return d+'d '+[hh,mm,ss].map(x=>String(x).padStart(2,'0')).join(':');
+  }catch{return '--d --:--:--'}
+}
+function getMyTasks(){
+  if(S.checklistMode==='weekly')return S.db[S.user].weeklyTasks||[];
+  if(S.checklistMode==='monthly')return S.db[S.user].monthlyTasks||[];
+  return S.db[S.user].tasks||[];
+}
+function setMyTasks(arr){
+  if(S.checklistMode==='weekly')S.db[S.user].weeklyTasks=arr;
+  else if(S.checklistMode==='monthly')S.db[S.user].monthlyTasks=arr;
+  else S.db[S.user].tasks=arr;
+}
+function checklistModeTabs(mode,stateKey){
+  const icons={daily:'📅',weekly:'📆',monthly:'🗓️'};
+  const labels={daily:'Diaria',weekly:'Semanal',monthly:'Mensual'};
+  return ['daily','weekly','monthly'].map(m=>{
+    const active=mode===m;
+    return '<button onclick="S.'+stateKey+'=\''+m+'\';render()" style="flex:1;font-family:\'Press Start 2P\',monospace;font-size:6px;border:1px solid '+(active?'#ff69b4':'#ff69b433')+';border-radius:8px;background:'+(active?'linear-gradient(135deg,#ff69b4,#c084fc)':'transparent')+';color:'+(active?'white':'#ff69b4')+';padding:7px 4px;cursor:pointer">'+icons[m]+' '+labels[m]+'</button>';
+  }).join('');
+}
+
+
 function pageLogin(){
   return '<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:28px">'
     +'<div style="text-align:center"><div style="font-size:56px;margin-bottom:10px">🕊️</div><div class="pf" style="font-size:15px;color:#ff69b4;margin-bottom:6px">Paloma</div><div class="pf" style="font-size:9px;color:#c084fc">Checklists</div></div>'
@@ -395,11 +455,17 @@ function pageLogin(){
 }
 
 function pageChecklist(){
-  const tasks=ud().tasks||[],done=tasks.filter(t=>t.done);
+  const mode=S.checklistMode||'daily';
+  const tasks=getMyTasks();
+  const done=tasks.filter(t=>t.done);
   const prog=tasks.length?Math.round(done.length/tasks.length*100):0;
   const earnedToday=done.reduce((s,t)=>s+t.pts,0),totalPts=tasks.reduce((s,t)=>s+t.pts,0);
+  const timerVal=mode==='weekly'?S.weeklyTimer:mode==='monthly'?S.monthlyTimer:S.timer;
+  const timerClass=mode==='weekly'?'timer-weekly':mode==='monthly'?'timer-monthly':'timer-el';
+  const timerLabel=mode==='weekly'?'Reinicia el domingo en':mode==='monthly'?'Reinicia el día 1 en':'Reinicia en';
   let html='<div style="max-width:580px">';
-  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><div class="pf" style="font-size:11px;color:#ff69b4">✅ Mi Checklist</div><div style="text-align:right"><div class="pf" style="font-size:6px;color:#555;margin-bottom:3px">Reinicia en</div><div class="pf timer-el" style="font-size:10px;color:#fbbf24">'+S.timer+'</div></div></div>';
+  html+='<div style="display:flex;gap:7px;margin-bottom:16px">'+checklistModeTabs(mode,'checklistMode')+'</div>';
+  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><div class="pf" style="font-size:11px;color:#ff69b4">✅ '+{daily:'Diaria',weekly:'Semanal',monthly:'Mensual'}[mode]+'</div><div style="text-align:right"><div class="pf" style="font-size:6px;color:#555;margin-bottom:3px">'+timerLabel+'</div><div class="pf '+timerClass+'" style="font-size:9px;color:#fbbf24">'+timerVal+'</div></div></div>';
   if(tasks.length>0){
     html+='<div style="background:#130820;border:1px solid #ff69b422;border-radius:10px;padding:12px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span class="pf" style="font-size:7px;color:#c084fc">'+done.length+'/'+tasks.length+' hechas</span><span class="pf" style="font-size:7px;color:#fbbf24">+'+earnedToday+'/'+totalPts+' ⭐</span></div><div style="background:#07070f;border-radius:20px;height:7px;overflow:hidden"><div style="width:'+prog+'%;height:100%;background:linear-gradient(90deg,#ff69b4,#c084fc);border-radius:20px;transition:width .4s"></div></div></div>';
   }
@@ -416,7 +482,6 @@ function pageChecklist(){
   html+='<div style="background:#130820;border:1px solid #ff69b444;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px"><div class="pf" style="font-size:8px;color:#ff69b4">➕ Nueva tarea</div><input id="new-task-inp" class="inp" placeholder="Nombre de la tarea..." onkeydown="if(event.key===\'Enter\')doAddTask()"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="pf" style="font-size:7px;color:#c084fc;flex-shrink:0">Puntos:</span><div id="pts-buttons" style="display:flex;gap:4px;flex-wrap:wrap">'+ptsBtns+'</div></div><button class="btn" onclick="doAddTask()">Añadir tarea</button></div></div>';
   return html;
 }
-
 function pageTienda(){
   let html='<div style="max-width:700px"><div class="pf" style="font-size:11px;color:#ff69b4;margin-bottom:5px">🛍️ Tienda</div><div class="pf" style="font-size:7px;color:#666;margin-bottom:20px">Abre sobres para conseguir cartas</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:14px;margin-bottom:24px">';
   Object.entries(SOBRES).forEach(([k,cfg])=>{
@@ -515,7 +580,10 @@ function pageIntercambios(){
 }
 
 function pageOtro(){
-  const od=S.db[other()],oName=USERS[other()].name,tasks=od.tasks||[],done=tasks.filter(t=>t.done);
+  const otroMode=S.otroChecklistMode||'daily';
+  const od=S.db[other()],oName=USERS[other()].name;
+  const tasks=(otroMode==='weekly'?od.weeklyTasks:otroMode==='monthly'?od.monthlyTasks:od.tasks)||[];
+  const done=tasks.filter(t=>t.done);
   const otherPts=od.pts||0;
   const _otherEvtOwned=(S.db.events||[]).filter(e=>e.rewardCard&&(od.col||{})[e.rewardCard.id]>0).length;
   const otherOwned=S.db.cards.filter(c=>(od.col||{})[c.id]>0).length+_otherEvtOwned;
@@ -524,7 +592,7 @@ function pageOtro(){
   const _oRIcon=getRankIcon(_oRank);
   const _oRankImg=_oRIcon?'<img src="'+esc(_oRIcon)+'" style="width:20px;height:20px;object-fit:contain">'  :'<span style="font-size:16px">'+getRankEmoji(_oRank)+'</span>';
   const prog=tasks.length?Math.round(done.length/tasks.length*100):0;
-  let html='<div style="max-width:580px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><div style="display:flex;align-items:center;gap:8px">'+_oRankImg+'<div><div class="pf" style="font-size:11px;color:#ff69b4">💌 '+oName+'</div><div class="pf" style="font-size:6px;color:#60a5fa;margin-top:2px">Nv. '+_oLv+'</div></div></div><div style="text-align:right"><div class="pf" style="font-size:6px;color:#555;margin-bottom:3px">Reinicia en</div><div class="pf timer-el" style="font-size:10px;color:#fbbf24">'+S.timer+'</div></div></div>';
+  let html='<div style="max-width:580px"><div style="display:flex;gap:7px;margin-bottom:12px">'+checklistModeTabs(otroMode,'otroChecklistMode')+'</div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><div style="display:flex;align-items:center;gap:8px">'+_oRankImg+'<div><div class="pf" style="font-size:11px;color:#ff69b4">💌 '+oName+'</div><div class="pf" style="font-size:6px;color:#60a5fa;margin-top:2px">Nv. '+_oLv+'</div></div></div><div style="text-align:right"><div class="pf" style="font-size:6px;color:#555;margin-bottom:3px">Reinicia en</div><div class="pf timer-el" style="font-size:10px;color:#fbbf24">'+S.timer+'</div></div></div>';
 const _oAchs=S.db.achievements||[];
   const _oAchAp=S.db[other()].achievementProgress||{};
   const _oAchUnlocked=_oAchs.filter(a=>_oAchAp[a.id]&&_oAchAp[a.id].unlocked).length;
@@ -1078,11 +1146,11 @@ function doAddTask(){
   const inp=document.getElementById('new-task-inp');
   const title=inp?inp.value.trim():'';
   if(!title)return;
-  S.db[S.user].tasks.push({id:uid(),title,pts:S.selPts,done:false});
+  getMyTasks().push({id:uid(),title,pts:S.selPts,done:false});
   playSound('addTask');save();
 }
 function doToggleTask(id){
-  const task=S.db[S.user].tasks.find(t=>t.id===id);
+  const task=getMyTasks().find(t=>t.id===id);
   if(!task)return;
   task.done=!task.done;
   if(task.done){playSound('completeTask');gainXP(task.pts);S.db[S.user].tasksCompleted=(S.db[S.user].tasksCompleted||0)+1;setTimeout(checkAchievements,500);}
@@ -1090,9 +1158,9 @@ function doToggleTask(id){
   save();
 }
 function doDeleteTask(id){
-  const task=S.db[S.user].tasks.find(t=>t.id===id);
+  const task=getMyTasks().find(t=>t.id===id);
   if(task&&task.done)S.db[S.user].pts=Math.max(0,S.db[S.user].pts-task.pts);
-  S.db[S.user].tasks=S.db[S.user].tasks.filter(t=>t.id!==id);
+  setMyTasks(getMyTasks().filter(t=>t.id!==id));
   save();
 }
 function doBuyPack(type){
@@ -1195,14 +1263,28 @@ startSync();
 setInterval(()=>{
   S.timer=calcTimer();
   document.querySelectorAll('.timer-el').forEach(el=>el.textContent=S.timer);
+  S.weeklyTimer=calcWeeklyTimer();S.monthlyTimer=calcMonthlyTimer();
+  document.querySelectorAll('.timer-weekly').forEach(el=>el.textContent=S.weeklyTimer);
+  document.querySelectorAll('.timer-monthly').forEach(el=>el.textContent=S.monthlyTimer);
   document.querySelectorAll('.evt-countdown').forEach(el=>{const end=+el.dataset.end;const diff=Math.max(0,end-Date.now());const dd=Math.floor(diff/86400000),hh=Math.floor((diff%86400000)/3600000),mm=Math.floor((diff%3600000)/60000),ss=Math.floor((diff%60000)/1000);el.textContent=dd+'d '+hh+'h '+mm+'m '+ss+'s';});
   try{
     const pts=new Intl.DateTimeFormat('en-US',{timeZone:'Atlantic/Canary',hour:'numeric',minute:'numeric',second:'numeric',hour12:false}).formatToParts(new Date());
     const h=+pts.find(p=>p.type==='hour').value,m=+pts.find(p=>p.type==='minute').value,sv=+pts.find(p=>p.type==='second').value;
     if(h===23&&m===59&&sv===0&&S.db){
       S.db.lastReset=canaryDate();
-      S.db.julia.tasks=[];
-      S.db.jesus.tasks=[];
+      S.db.julia.tasks=[];S.db.jesus.tasks=[];
+      save();render();
+    }
+    const _wd=new Intl.DateTimeFormat('en-US',{timeZone:'Atlantic/Canary',weekday:'short'}).format(new Date());
+    if(_wd==='Sun'&&h===23&&m===59&&sv===0&&S.db){
+      S.db.lastWeeklyReset=canaryDate();
+      S.db.julia.weeklyTasks=[];S.db.jesus.weeklyTasks=[];
+      save();render();
+    }
+    const _d=+new Intl.DateTimeFormat('en-US',{timeZone:'Atlantic/Canary',day:'2-digit'}).format(new Date());
+    if(_d===1&&h===0&&m===0&&sv===0&&S.db){
+      S.db.lastMonthlyReset=canaryDate().slice(0,7);
+      S.db.julia.monthlyTasks=[];S.db.jesus.monthlyTasks=[];
       save();render();
     }
   }catch(e){}
