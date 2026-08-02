@@ -1143,16 +1143,19 @@ async function downloadCardAsPNG(card){
   ctx.strokeStyle=r.b+'55';ctx.lineWidth=sc;rr(pad,imgTop,imgSize,imgSize,4*sc);ctx.stroke();
   if(card.image){
     try{
-      const resp=await fetch(card.image);
-      const blob=await resp.blob();
-      const blobURL=URL.createObjectURL(blob);
-      const img=new Image();
-      await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=blobURL;});
+      let _fURL=card.image;
+      const _ghM=_fURL.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^?]+)/);
+      if(_ghM)_fURL='https://raw.githubusercontent.com/'+_ghM[1]+'/'+_ghM[2]+'/'+_ghM[3];
+      const _resp=await fetch(_fURL);
+      if(!_resp.ok)throw new Error('HTTP '+_resp.status);
+      const _blob=await _resp.blob();
+      const _b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(_blob);});
+      const _img=new Image();
+      await new Promise((res,rej)=>{_img.onload=res;_img.onerror=rej;_img.src=_b64;});
       ctx.save();rr(pad,imgTop,imgSize,imgSize,4*sc);ctx.clip();
-      ctx.drawImage(img,pad,imgTop,imgSize,imgSize);
+      ctx.drawImage(_img,pad,imgTop,imgSize,imgSize);
       ctx.restore();
-      URL.revokeObjectURL(blobURL);
-    }catch(e){console.warn('Canvas image error:',e);}
+    }catch(e){console.error('PNG image error:',e);}
   }
   const descTop=imgTop+imgSize+8*sc;
   ctx.fillStyle='#888888';ctx.font=`${descFontSz}px monospace`;ctx.textAlign='left';ctx.textBaseline='top';
