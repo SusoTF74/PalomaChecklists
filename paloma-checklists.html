@@ -979,7 +979,7 @@ function pageLogros(){
       html+='<div class="overlay" onclick="S.inspectAch=null;render()"><div onclick="event.stopPropagation()" style="background:#130820;border:2px solid #fbbf24;border-radius:16px;padding:24px;max-width:300px;width:100%;display:flex;flex-direction:column;align-items:center;gap:12px">';
       html+='<div style="width:100px;height:100px;border-radius:50%;'+achBorderStyle(ach.color,ach.glow)+';overflow:hidden;display:flex;align-items:center;justify-content:center">';
       if(ach.image&&prog.unlocked)html+='<img src="'+esc(ach.image)+'" style="width:100%;height:100%;object-fit:cover">';
-      else html+='<span style="font-size:44px">&#127942;</span>';
+      else html+='<span style="font-size:44px">'+(prog.unlocked?'&#127942;':'&#128274;')+'</span>';
       html+='</div>';
       html+='<div class="pf" style="font-size:9px;color:#fbbf24;text-align:center">'+esc(ach.title)+'</div>';
       html+='<div style="font-size:12px;color:#a0a0c0;text-align:center;line-height:1.6">'+esc(ach.description||'')+'</div>';
@@ -1008,7 +1008,7 @@ function restoreAdminAchForm(){
   f('aa-cat','category');f('aa-req','required');f('aa-color','color');
 }
 function doCancelAch(){_adminAchEditId=null;_adminAch={title:'',image:'',description:'',category:'tasks',required:1,color:'#fbbf24',glow:false};render();}
-function doSetMulticolorAch(){saveAdminAchForm();_adminAch.color='multicolor';render();window.scrollTo(0,99999);}
+function doSetMulticolorAch(){saveAdminAchForm();_adminAch.color=(_adminAch.color==='multicolor'?'#fbbf24':'multicolor');render();window.scrollTo(0,99999);}
 function doToggleGlowAch(){saveAdminAchForm();_adminAch.glow=!_adminAch.glow;render();window.scrollTo(0,99999);}
 function doSaveAchievement(){
   saveAdminAchForm();
