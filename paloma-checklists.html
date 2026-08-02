@@ -1142,7 +1142,7 @@ async function downloadCardAsPNG(card){
   rr(ctx,0,0,W,totalH,8*sc);ctx.fillStyle=gr;ctx.fill();
   // Border + glow
   if(r.glow&&!leg){ctx.shadowColor=r.b;ctx.shadowBlur=10*sc;}
-  ctx.strokeStyle=leg?'#ff69b4':r.b;ctx.lineWidth=bw;
+  ctx.strokeStyle=leg?'#fbbf24':r.b;ctx.lineWidth=bw;
   rr(ctx,bw/2,bw/2,W-bw,totalH-bw,7*sc);ctx.stroke();ctx.shadowBlur=0;
   // Layout positions
   const cx=bw+pad;let cy=bw+pad;
