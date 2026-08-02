@@ -1141,7 +1141,19 @@ async function downloadCardAsPNG(card){
   const imgTop=pad+titleH+6*sc;
   rr(pad,imgTop,imgSize,imgSize,4*sc);ctx.fillStyle='#070712';ctx.fill();
   ctx.strokeStyle=r.b+'55';ctx.lineWidth=sc;rr(pad,imgTop,imgSize,imgSize,4*sc);ctx.stroke();
-  if(card.image){try{const img=new Image();img.crossOrigin='anonymous';await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=card.image;});ctx.save();rr(pad,imgTop,imgSize,imgSize,4*sc);ctx.clip();ctx.drawImage(img,pad,imgTop,imgSize,imgSize);ctx.restore();}catch(e){}}
+  if(card.image){
+    try{
+      const resp=await fetch(card.image);
+      const blob=await resp.blob();
+      const blobURL=URL.createObjectURL(blob);
+      const img=new Image();
+      await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=blobURL;});
+      ctx.save();rr(pad,imgTop,imgSize,imgSize,4*sc);ctx.clip();
+      ctx.drawImage(img,pad,imgTop,imgSize,imgSize);
+      ctx.restore();
+      URL.revokeObjectURL(blobURL);
+    }catch(e){console.warn('Canvas image error:',e);}
+  }
   const descTop=imgTop+imgSize+8*sc;
   ctx.fillStyle='#888888';ctx.font=`${descFontSz}px monospace`;ctx.textAlign='left';ctx.textBaseline='top';
   dLines.forEach((l,i)=>ctx.fillText(l,pad,descTop+i*descLH));
