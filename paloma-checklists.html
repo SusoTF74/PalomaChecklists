@@ -639,7 +639,7 @@ function pageAdmin(){
 
   
   const _achs2=S.db.achievements||[];
-  const _achCL={tasks:'✅ Tasks',coleccionismo:'🃏 Coleccionismo',intercambios:'🔄 Intercambios',toques:'👆 Toques',eventos:'🎪 Eventos'};
+  const _achCL={tasks:'✅ Tasks',coleccionismo:'🃏 Coleccionismo',intercambios:'🔄 Intercambios',toques:'👆 Toques',eventos:'🎪 Eventos',rango:'⭐ Rango'};
   html+='<div style="background:#130820;border:2px solid #fbbf2433;border-radius:12px;padding:16px;margin-bottom:18px">'
     +'<div class="pf" style="font-size:8px;color:#fbbf24;margin-bottom:12px">'+(_adminAchEditId?'✏️ Editar Logro':'🏆 Nuevo Logro')+'</div>'
     +'<div style="display:flex;flex-direction:column;gap:9px">'
@@ -662,7 +662,7 @@ function pageAdmin(){
     +'</div></div></div>';
   if(_achs2.length>0){
     html+='<div style="background:#130820;border:1px solid #fbbf2422;border-radius:12px;padding:16px;margin-bottom:18px"><div class="pf" style="font-size:8px;color:#fbbf24;margin-bottom:12px">📋 Logros ('+_achs2.length+')</div>';
-    ['tasks','coleccionismo','intercambios','toques','eventos'].forEach(function(cat){
+    ['tasks','coleccionismo','intercambios','toques','eventos','rango'].forEach(function(cat){
       const catA=_achs2.filter(function(a){return a.category===cat;}).sort(function(a,b){return a.required-b.required;});
       if(!catA.length)return;
       html+='<div class="pf" style="font-size:6px;color:#888;margin:8px 0 5px">'+_achCL[cat]+'</div>';
@@ -959,7 +959,7 @@ function pageLogros(){
       const prog=ap[ach.id]||{unlocked:false};
       const done=prog.unlocked;
       const inspID=JSON.stringify(ach.id).replace(/"/g,'&quot;');
-      html+='<div onclick="'+( done?'S.inspectAch='+inspID+';render()':'')+'" style="cursor:'+(done?'pointer':'default')+';display:flex;flex-direction:column;align-items:center;gap:6px;width:84px">';
+      html+='<div onclick="S.inspectAch='+inspID+';render()" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;width:84px">';
       html+='<div style="width:68px;height:68px;border-radius:50%;'+achBorderStyle(ach.color,ach.glow)+';background:#130820;display:flex;align-items:center;justify-content:center;overflow:hidden;'+(done?'':'opacity:.4')+'">';
       if(done&&ach.image)html+='<img src="'+esc(ach.image)+'" style="width:100%;height:100%;object-fit:cover">';
       else html+='<span style="font-size:26px">'+(done?'&#127942;':'&#128274;')+'</span>';
