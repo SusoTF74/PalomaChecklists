@@ -192,6 +192,7 @@ function startSync(){
     }
     if(S.loading){S.loading=false;}
     preloadSounds();
+    preloadImages();
     render();
     checkPendingPoke();
   });
@@ -200,6 +201,21 @@ function startSync(){
 // ─── SOUNDS ────────────────────────────────────────────────────────────────
 let bgAudio=null;
 const audioCache={};
+
+function preloadImages(){
+  if(!S.db)return;
+  const urls=new Set();
+  (S.db.cards||[]).forEach(c=>{if(c.image)urls.add(c.image);});
+  (S.db.achievements||[]).forEach(a=>{if(a.image)urls.add(a.image);});
+  (S.db.events||[]).forEach(e=>{if(e&&e.image)urls.add(e.image);if(e&&e.rewardCard&&e.rewardCard.image)urls.add(e.rewardCard.image);});
+  const alb=S.db.album||{};
+  if((alb.cover||{}).image)urls.add(alb.cover.image);
+  if((alb.back||{}).image)urls.add(alb.back.image);
+  (alb.pages||[]).forEach(p=>{if(p.image)urls.add(p.image);});
+  ['rankBronze','rankSilver','rankGold','rankPlatinum','rankDiamond','lockedAchImage'].forEach(k=>{const u=(S.db.sounds||{})[k];if(u)urls.add(u);});
+  urls.forEach(url=>{try{const i=new Image();i.src=url;}catch(e){}});
+}
+
 
 function preloadSounds(){
   if(!S.db||!S.db.sounds)return;
@@ -631,645 +647,30 @@ const _oAchs=S.db.achievements||[];
   return html;
 }
 
-function pageAlbum(){return'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;gap:18px"><div style="font-size:60px">📚</div><div class="pf" style="font-size:14px;color:#ff69b4">Álbum</div><div class="pf" style="font-size:10px;color:#fbbf24;padding:8px 20px;background:#fbbf2011;border:1px solid #fbbf2444;border-radius:8px">COMING SOON</div><div class="pf" style="font-size:7px;color:#666;text-align:center;max-width:280px;line-height:1.9">Próximamente podrás organizar todas las cartas en un álbum especial ✨</div></div>'}
 
-function pageAdmin(){
-  const byR={};Object.keys(R).forEach(r=>{byR[r]=S.db.cards.filter(c=>c.rarity===r)});
-  const stats=[['Cartas',S.db.cards.length,'#ff69b4'],['Julia ⭐',S.db.julia.pts,'#ff69b4'],['Jesús ⭐',S.db.jesus.pts,'#a78bfa'],['Trades',(S.db.trades||[]).filter(t=>t.status==='pending').length,'#fbbf24']];
-  const rarOpts=Object.entries(R).map(([k,v])=>'<option value="'+k+'" '+(S.adminRarity===k?'selected':'')+'>'+v.lbl+'</option>').join('');
-  let html='<div style="min-height:100vh;padding:16px;max-width:760px;margin:0 auto"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><div><div class="pf" style="font-size:10px;color:#ff69b4">🔧 Admin Panel</div><div class="pf" style="font-size:6px;color:#555;margin-top:4px">Paloma Checklists</div></div><button class="btn-o" onclick="S.user=null;render()">Salir</button></div>'
-    +'<div id="admin-msg" style="display:none;background:#091409;border:1px solid #4ade80;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-family:\'Press Start 2P\',monospace;font-size:7px;color:#4ade80"></div>'
-    +'<div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">'+stats.map(([l,v,c])=>'<div style="background:#130820;border:1px solid #ff69b422;border-radius:10px;padding:10px 14px"><div class="pf" style="font-size:6px;color:#666;margin-bottom:4px">'+l+'</div><div class="pf" style="font-size:14px;color:'+c+'">'+v+'</div></div>').join('')+'</div>'
-    +'<div style="background:#130820;border:1px solid #ff69b433;border-radius:12px;padding:16px;margin-bottom:18px"><div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:12px">'+(S.adminEditId?'✏️ Editar carta':'➕ Nueva carta')+'</div><div style="display:flex;flex-direction:column;gap:10px"><input id="af-title" class="inp" placeholder="Título*"><select id="af-rarity" class="inp" onchange="S.adminRarity=this.value">'+rarOpts+'</select><input id="af-image" class="inp" placeholder="URL de imagen (opcional)"><textarea id="af-desc" class="inp" placeholder="Descripción" rows="3"></textarea><div style="display:flex;gap:8px"><button class="btn" onclick="doAdminSave()" style="flex:1">'+(S.adminEditId?'Guardar cambios':'Añadir carta')+'</button>'+(S.adminEditId?'<button class="btn-o" onclick="S.adminEditId=null;S.adminRarity=\'comun\';render()">Cancelar</button>':'')+'</div></div></div>';
-  Object.entries(byR).forEach(([rar,cards])=>{
-    if(!cards.length)return;
-    html+='<div style="margin-bottom:16px"><div class="pf" style="font-size:7px;color:'+R[rar].tc+';margin-bottom:8px">'+R[rar].lbl+' ('+cards.length+')</div>';
-    cards.forEach(c=>{
-      html+='<div style="background:#130820;border:1px solid '+R[c.rarity].b+'44;border-radius:10px;padding:9px 11px;display:flex;align-items:center;gap:9px;margin-bottom:5px">'+(c.image?'<img src="'+esc(c.image)+'" style="width:34px;height:34px;object-fit:cover;border-radius:4px;image-rendering:pixelated;flex-shrink:0" onerror="this.style.display=\'none\'">':'<div style="width:34px;height:34px;background:#07070f;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🃏</div>')+'<div style="flex:1;min-width:0"><div class="pf" style="font-size:7px;color:#f0d6ff;margin-bottom:2px">'+esc(c.title)+'</div>'+(c.description?'<div style="font-size:11px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c.description)+'</div>':'')+'</div><div style="display:flex;gap:5px;flex-shrink:0"><button onclick="doAdminEdit(\''+c.id+'\')" style="background:none;border:1px solid #4ade8033;border-radius:6px;color:#4ade80;cursor:pointer;padding:4px 7px;font-size:12px">✏️</button><button onclick="doAdminDelete(\''+c.id+'\')" style="background:none;border:1px solid #f8717133;border-radius:6px;color:#f87171;cursor:pointer;padding:4px 7px;font-size:12px">🗑️</button></div></div>';
-    });
-    html+='</div>';
-  });
-  if(!S.db.cards.length)html+='<div style="text-align:center;padding:28px 0"><div style="font-size:36px;margin-bottom:8px">🃏</div><div class="pf" style="font-size:8px;color:#555">No hay cartas — añade la primera arriba</div></div>';
-  const snds=S.db.sounds||{};
-  let soundRows='';
-  SND_DEFS.forEach(([k,l])=>{soundRows+='<div style="margin-bottom:10px"><div class="pf" style="font-size:6px;color:#c084fc;margin-bottom:4px">'+l+'</div><div style="display:flex;gap:6px"><input class="inp" id="snd-'+k+'" style="font-size:11px" placeholder="https://... (.mp3 / .ogg / .wav)" value="'+esc(snds[k]||'')+'"><button onclick="testSound(\''+k+'\')" style="flex-shrink:0;background:none;border:1px solid #a78bfa44;border-radius:6px;color:#a78bfa;cursor:pointer;padding:4px 10px;font-size:14px">▶</button></div></div>';});
-  let rankRows='';
-  const snds2=S.db.sounds||{};
-  RANK_DEFS.forEach(([k,l])=>{rankRows+='<div style="margin-bottom:10px"><div class="pf" style="font-size:6px;color:#60a5fa;margin-bottom:4px">'+l+'</div><div style="display:flex;gap:6px;align-items:center"><input class="inp" id="snd-'+k+'" style="font-size:11px" placeholder="URL imagen (.png/.jpg/.webp)" value="'+esc(snds2[k]||'')+'">'+((snds2[k]||'')?'<img src="'+esc(snds2[k])+'" style="width:32px;height:32px;object-fit:contain;border-radius:4px;flex-shrink:0">':'')+'</div></div>';});
-  html+='<div style="background:#130820;border:1px solid #60a5fa33;border-radius:12px;padding:16px;margin-bottom:18px"><div class="pf" style="font-size:8px;color:#60a5fa;margin-bottom:4px">✨ Iconos de Rango</div><div class="pf" style="font-size:6px;color:#555;margin-bottom:14px;line-height:1.8">URLs de imagen para cada rango.</div>'+rankRows+'<button class="btn" onclick="doSaveSounds()" style="width:100%;margin-top:4px;background:linear-gradient(135deg,#1d4ed8,#3b82f6)">Guardar iconos</button></div>';
-  html+='<div style="background:#130820;border:1px solid #a78bfa33;border-radius:12px;padding:16px;margin-bottom:18px"><div class="pf" style="font-size:8px;color:#a78bfa;margin-bottom:4px">🔊 Sonidos</div><div class="pf" style="font-size:6px;color:#555;margin-bottom:14px;line-height:1.8">URLs de audio (.mp3/.ogg/.wav). Usa ▶ para probar antes de guardar.</div>'+soundRows+'<button class="btn" onclick="doSaveSounds()" style="width:100%;background:linear-gradient(135deg,#7c3aed,#a78bfa)">Guardar sonidos</button></div>';
-  html+='<div style="margin-top:4px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn-g" onclick="doExport()">📦 Exportar backup</button><button class="btn-o" onclick="S.showImport=!S.showImport;render()">📥 Importar backup</button></div>';
-  if(S.showImport){html+='<div style="margin-top:12px;background:#130820;border:1px solid #4ade8033;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px"><div class="pf" style="font-size:7px;color:#4ade80">Pega el backup JSON:</div><textarea id="import-ta" class="inp" rows="5"></textarea><div style="display:flex;gap:8px"><button class="btn-g" onclick="doImport()">Importar</button><button class="btn-o" onclick="S.showImport=false;render()">Cancelar</button></div></div>';}
-
-  const _evts2=S.db.events||[];
-  const _now2=Date.now();
-  let _evtTasksHTML='';
-  _adminEvtTasks.forEach(function(t){
-    _evtTasksHTML+='<div style="display:flex;align-items:center;gap:8px;background:#07070f;border-radius:8px;padding:8px 10px;margin-bottom:6px">'
-      +'<div style="flex:1"><div class="pf" style="font-size:6px;color:#f0d6ff;margin-bottom:2px">'+esc(t.title)+'</div>'
-      +'<div class="pf" style="font-size:5px;color:#888">Obj: '+t.target+' · ⭐'+t.pts+' · +'+t.xp+'XP</div></div>'
-      +'<button onclick="doRemoveEventTask(&quot;'+t.id+'&quot;)" style="background:none;border:1px solid #f8717133;border-radius:6px;color:#f87171;cursor:pointer;padding:3px 8px;font-size:11px">✕</button></div>';
-  });
-  html+='<div style="background:#130820;border:2px solid #ff69b433;border-radius:12px;padding:16px;margin-bottom:18px">'
-    +'<div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:12px">'+(_adminEvtEditId?'✏️ Editar Evento':'🎪 Crear Evento')+'</div>'
-    +'<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">'
-    +'<input id="ae-title" class="inp" placeholder="Título del evento*" value="'+esc(_adminEvt.title||'')+'">'
-    +'<input id="ae-image" class="inp" placeholder="URL imagen de portada (opcional)" value="'+esc(_adminEvt.image||'')+'">'
-    +'<textarea id="ae-desc" class="inp" placeholder="Descripción" rows="2">'+esc(_adminEvt.desc||'')+'</textarea></div>'
-    +'<div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px">📋 Tasks de progreso</div>'
-    +(_adminEvtTasks.length>0?_evtTasksHTML:'')
-    +'<div style="background:#07070f;border:1px solid #ff69b422;border-radius:10px;padding:10px;margin-bottom:10px">'
-    +'<div class="pf" style="font-size:6px;color:#888;margin-bottom:8px">Nueva task:</div>'
-    +'<div style="display:flex;flex-direction:column;gap:7px">'
-    +'<input id="aet-title" class="inp" placeholder="Nombre de la task*" style="font-size:12px">'
-    +'<div style="display:flex;gap:7px">'
-    +'<input id="aet-target" class="inp" type="number" placeholder="Objetivo" value="10" min="1" style="font-size:12px">'
-    +'<input id="aet-pts" class="inp" type="number" placeholder="Puntos" value="10" min="0" style="font-size:12px">'
-    +'<input id="aet-xp" class="inp" type="number" placeholder="XP" value="5" min="0" style="font-size:12px"></div>'
-    +'<button class="btn-o" onclick="doAddEventTask()">+ Añadir task</button></div></div>'
-    +'<div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px;margin-top:4px">🎁 Carta recompensa (rareza Evento)</div>'
-    +'<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px">'
-    +'<input id="ae-rtitle" class="inp" placeholder="Título de la carta*" style="font-size:12px" value="'+esc(_adminEvt.rewardTitle||'')+'">'
-    +'<input id="ae-rimage" class="inp" placeholder="URL imagen de la carta (opcional)" style="font-size:12px" value="'+esc(_adminEvt.rewardImage||'')+'">'
-    +'<textarea id="ae-rdesc" class="inp" placeholder="Descripción de la carta" rows="2" style="font-size:12px">'+esc(_adminEvt.rewardDesc||'')+'</textarea></div>'
-    +'<div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px">📅 Fecha y hora de fin (hora canaria)</div>'
-    +'<div style="display:flex;gap:8px;margin-bottom:12px">'
-    +'<input id="ae-enddate" class="inp" type="date" style="font-size:13px;flex:1" value="'+(_adminEvt.endDateStr||'')+'">'
-    +'<input id="ae-endtime" class="inp" type="time" value="'+(_adminEvt.endTimeStr||'23:59')+'" style="font-size:13px;width:100px"></div>'
-    +'<div style="display:flex;gap:8px"><button class="btn" onclick="doCreateEvent()" style="flex:1;background:linear-gradient(135deg,#ff69b4,#f43f5e)">'+(_adminEvtEditId?'💾 Guardar cambios':'🎪 Crear Evento')+'</button>'+(_adminEvtEditId?'<button class="btn-o" onclick="doCancelEditEvent()">Cancelar</button>':'')+'</div></div>';
-  if(_evts2.length>0){
-    html+='<div style="background:#130820;border:1px solid #ff69b422;border-radius:12px;padding:16px;margin-bottom:18px">'
-      +'<div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:12px">📋 Eventos ('+_evts2.length+')</div>';
-    _evts2.forEach(function(e){
-      const _act=e.endDate>_now2;
-      const _dd=Math.floor(Math.max(0,e.endDate-_now2)/86400000);
-      html+='<div style="display:flex;align-items:center;gap:10px;background:#07070f;border-radius:10px;padding:10px;margin-bottom:6px">'
-        +'<div style="flex:1"><div class="pf" style="font-size:7px;color:#f0d6ff;margin-bottom:2px">'+esc(e.title)+'</div>'
-        +'<div class="pf" style="font-size:5px;color:'+(_act?'#4ade80':'#f87171')+';">'+(_act?'Activo · '+_dd+'d restantes':'Expirado')+'</div></div>'
-        +'<button onclick="doEditEvent(&quot;'+e.id+'&quot;)" style="background:none;border:1px solid #4ade8033;border-radius:6px;color:#4ade80;cursor:pointer;padding:4px 8px;font-size:12px;margin-right:4px">✏️</button>'+'<button onclick="doDeleteEvent(&quot;'+e.id+'&quot;)" style="background:none;border:1px solid #f8717133;border-radius:6px;color:#f87171;cursor:pointer;padding:4px 8px;font-size:12px">🗑️</button></div>';
-    });
-    html+='</div>';
+function startSlotDrag(pageId,slotId,event){
+  event.stopPropagation();event.preventDefault();
+  const container=document.getElementById('alb-ed-'+pageId);if(!container)return;
+  const page=(S.db.album.pages||[]).find(p=>p.id===pageId);if(!page)return;
+  const slot=(page.slots||[]).find(s=>s.id===slotId);if(!slot)return;
+  const rect=container.getBoundingClientRect();
+  function onMove(e){
+    const cx=e.touches?e.touches[0].clientX:e.clientX;
+    const cy=e.touches?e.touches[0].clientY:e.clientY;
+    slot.x=Math.max(0,Math.min(100-slot.w,+((cx-rect.left)/rect.width*100-slot.w/2).toFixed(1)));
+    slot.y=Math.max(0,Math.min(100-slot.h,+((cy-rect.top)/rect.height*100-slot.h/2).toFixed(1)));
+    const el=document.getElementById('slotadm-'+slotId);
+    if(el){el.style.left=slot.x+'%';el.style.top=slot.y+'%';}
   }
-
-  
-  const _achs2=S.db.achievements||[];
-  const _achCL={tasks:'✅ Tasks',coleccionismo:'🃏 Coleccionismo',intercambios:'🔄 Intercambios',toques:'👆 Toques',eventos:'🎪 Eventos',rango:'⭐ Rango'};
-  html+='<div style="background:#130820;border:2px solid #fbbf2433;border-radius:12px;padding:16px;margin-bottom:18px">'
-    +'<div class="pf" style="font-size:8px;color:#fbbf24;margin-bottom:12px">'+(_adminAchEditId?'✏️ Editar Logro':'🏆 Nuevo Logro')+'</div>'
-    +'<div style="display:flex;flex-direction:column;gap:9px">'
-    +'<input id="aa-title" class="inp" placeholder="Título del logro*" value="'+esc(_adminAch.title||'')+'">'
-    +'<input id="aa-image" class="inp" placeholder="URL imagen (opcional)" value="'+esc(_adminAch.image||'')+'">'
-    +'<textarea id="aa-desc" class="inp" placeholder="Descripción" rows="2">'+esc(_adminAch.description||'')+'</textarea>'
-    +'<div style="display:flex;gap:8px">'
-    +'<select id="aa-cat" class="inp">'
-    +['tasks','coleccionismo','intercambios','toques','eventos','rango'].map(c=>'<option value="'+c+'"'+(_adminAch.category===c?' selected':'')+'>'+{tasks:'✅ Tasks',coleccionismo:'🃏 Coleccionismo',intercambios:'🔄 Intercambios',toques:'👆 Toques',eventos:'🎪 Eventos',rango:'⭐ Rango'}[c]+'</option>').join('')
-    +'</select>'
-    +'<input id="aa-req" class="inp" type="number" min="1" placeholder="Cantidad" value="'+(_adminAch.required||1)+'" style="width:100px"></div>'
-    +'<div style="display:flex;gap:8px;align-items:center"><span class="pf" style="font-size:6px;color:#888">Marco:</span>'
-    +'<input id="aa-color" class="inp" type="color" value="'+(_adminAch.color==='multicolor'?'#fbbf24':(_adminAch.color||'#fbbf24'))+'" style="width:48px;height:36px;padding:2px;cursor:pointer">'
-    +'<button onclick="doSetMulticolorAch()" style="background:none;border:1px solid #ff69b444;border-radius:6px;color:#ff69b4;cursor:pointer;padding:6px 10px;font-family:\'Press Start 2P\',monospace;font-size:6px">Multicolor</button>'
-    +(_adminAch.color==='multicolor'?'<span class="pf" style="font-size:6px;color:#4ade80">✓</span>':'')+' </div>'
-    +'<button onclick="doToggleGlowAch()" style="background:none;border:1px solid '+(_adminAch.glow?'#c084fc':'#c084fc44')+';border-radius:6px;color:'+(_adminAch.glow?'#c084fc':'#888')+';cursor:pointer;padding:6px 10px;font-family:\'Press Start 2P\',monospace;font-size:6px;flex-shrink:0">'+(_adminAch.glow?'✓ ':'')+'Neón</button></div>'
-    +'<div style="display:flex;gap:8px">'
-    +'<button class="btn" onclick="doSaveAchievement()" style="flex:1;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1a0a00">'+(_adminAchEditId?'💾 Guardar':'🏆 Añadir Logro')+'</button>'
-    +(_adminAchEditId?'<button class="btn-o" onclick="doCancelAch()">Cancelar</button>':'')
-    +'</div></div></div>';
-  if(_achs2.length>0){
-    html+='<div style="background:#130820;border:1px solid #fbbf2422;border-radius:12px;padding:16px;margin-bottom:18px"><div class="pf" style="font-size:8px;color:#fbbf24;margin-bottom:12px">📋 Logros ('+_achs2.length+')</div>';
-    ['tasks','coleccionismo','intercambios','toques','eventos','rango'].forEach(function(cat){
-      const catA=_achs2.filter(function(a){return a.category===cat;}).sort(function(a,b){return a.required-b.required;});
-      if(!catA.length)return;
-      html+='<div class="pf" style="font-size:6px;color:#888;margin:8px 0 5px">'+_achCL[cat]+'</div>';
-      catA.forEach(function(a){
-        html+='<div style="display:flex;align-items:center;gap:8px;background:#07070f;border-radius:8px;padding:8px 10px;margin-bottom:5px">'
-          +'<div style="width:28px;height:28px;border-radius:50%;border:'+(a.color==='multicolor'?'2px solid #ff69b4':'2px solid '+(a.color||'#fbbf24'))+';flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center">'
-          +(a.image?'<img src="'+esc(a.image)+'" style="width:100%;height:100%;object-fit:cover">':'<span style="font-size:14px">🏆</span>')+'</div>'
-          +'<div style="flex:1"><div class="pf" style="font-size:6px;color:#f0d6ff;margin-bottom:1px">'+esc(a.title)+'</div><div class="pf" style="font-size:5px;color:#666">'+_achCL[a.category]+' · '+a.required+'</div></div>'
-          +'<button onclick="doEditAchievement(&quot;'+a.id+'&quot;)" style="background:none;border:1px solid #4ade8033;border-radius:5px;color:#4ade80;cursor:pointer;padding:3px 7px;font-size:11px">✏️</button>'
-          +'<button onclick="doDeleteAchievement(&quot;'+a.id+'&quot;)" style="background:none;border:1px solid #f8717133;border-radius:5px;color:#f87171;cursor:pointer;padding:3px 7px;font-size:11px">🗑️</button></div>';
-      });
-    });
-    html+='</div>';
-  }
-
-  
-  // ─── ALBUM ADMIN ──────────────────────────────────────────────────────────
-  const _alb=S.db.album||{};
-  const _albPages=_alb.pages||[];
-  html+='<div style="background:#130820;border:2px solid #60a5fa33;border-radius:12px;padding:16px;margin-bottom:18px">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
-    +'<div class="pf" style="font-size:8px;color:#60a5fa">📖 Álbum</div>'
-    +'<button onclick="doToggleAlbumVisible()" style="background:none;border:1px solid '+(_alb.visible?'#4ade80':'#f8717133')+';border-radius:6px;color:'+(_alb.visible?'#4ade80':'#f87171')+';cursor:pointer;padding:4px 10px;font-family:\'Press Start 2P\',monospace;font-size:6px">'+(_alb.visible?'✓ Visible':'Oculto (EN DESARROLLO)')+'</button>'
-    +'</div>'
-    +'<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">'
-    +'<input id="alb-cover" class="inp" placeholder="URL imagen portada" value="'+esc((_alb.cover||{}).image||'')+'">'
-    +'<input id="alb-back" class="inp" placeholder="URL imagen contraportada" value="'+esc((_alb.back||{}).image||'')+'">'
-    +'<input id="alb-snd-flip" class="inp" placeholder="URL sonido pasar página" value="'+esc((_alb.sounds||{}).pageFlip||'')+'">'
-    +'<input id="alb-snd-stick" class="inp" placeholder="URL sonido pegar carta" value="'+esc((_alb.sounds||{}).cardStick||'')+'">'
-    +'<button class="btn" onclick="doSaveAlbumSettings()" style="background:linear-gradient(135deg,#3b82f6,#60a5fa)">💾 Guardar configuración</button>'
-    +'</div>'
-    +'<div class="pf" style="font-size:7px;color:#60a5fa;margin-bottom:8px">➕ Nueva página</div>'
-    +'<div style="display:flex;gap:8px;margin-bottom:'+(S.editSlotPage?'0':'0')+'px">'
-    +'<input id="alb-new-page-img" class="inp" placeholder="URL imagen de la página*" style="flex:1">'
-    +'<button class="btn-o" onclick="doAddAlbumPage()" style="flex-shrink:0;border-color:#60a5fa;color:#60a5fa">Añadir</button>'
-    +'</div>';
-  if(_albPages.length>0){
-    html+='<div class="pf" style="font-size:7px;color:#60a5fa;margin:12px 0 8px">📄 Páginas ('+_albPages.length+')</div>';
-    _albPages.forEach(function(page,idx){
-      const slots=(page.slots||[]).length;
-      const isEditing=S.editSlotPage===page.id;
-      html+='<div style="background:#07070f;border-radius:8px;margin-bottom:6px;overflow:hidden">'
-        +'<div style="display:flex;align-items:center;gap:8px;padding:8px 10px">'
-        +(page.image?'<img src="'+esc(page.image)+'" style="width:32px;height:44px;object-fit:cover;border-radius:3px;flex-shrink:0">':'')
-        +'<div style="flex:1"><div class="pf" style="font-size:6px;color:#f0d6ff">Pág. '+(idx+1)+'</div><div class="pf" style="font-size:5px;color:#666;margin-top:2px">'+slots+' hueco'+(slots!==1?'s':'')+'</div></div>'
-        +'<button onclick="doMoveAlbumPage(\''+page.id+'\',\'up\')" '+(idx===0?'disabled':'')+' style="background:none;border:1px solid #60a5fa33;border-radius:4px;color:#60a5fa;cursor:pointer;padding:2px 6px;font-size:11px">↑</button>'
-        +'<button onclick="doMoveAlbumPage(\''+page.id+'\',\'down\')" '+(idx===_albPages.length-1?'disabled':'')+' style="background:none;border:1px solid #60a5fa33;border-radius:4px;color:#60a5fa;cursor:pointer;padding:2px 6px;font-size:11px">↓</button>'
-        +'<button onclick="doEditAlbumPage(\''+page.id+'\')" style="background:none;border:1px solid #4ade8033;border-radius:4px;color:#4ade80;cursor:pointer;padding:2px 6px;font-size:11px">'+(isEditing?'✓':'✏️')+'</button>'
-        +'<button onclick="doDeleteAlbumPage(\''+page.id+'\')" style="background:none;border:1px solid #f8717133;border-radius:4px;color:#f87171;cursor:pointer;padding:2px 6px;font-size:11px">🗑️</button>'
-        +'</div>';
-      // Visual slot editor
-      if(isEditing){
-        html+='<div style="padding:10px;border-top:1px solid #ffffff11">'
-          +'<div class="pf" style="font-size:6px;color:#888;margin-bottom:8px">Toca en la imagen para añadir un hueco de carta</div>'
-          +'<div id="alb-ed-'+page.id+'" onclick="doAddSlotClick(\''+page.id+'\',event)" style="position:relative;width:100%;cursor:crosshair;border-radius:6px;overflow:hidden;border:1px solid #60a5fa33">';
-        if(page.image)html+='<img src="'+esc(page.image)+'" style="width:100%;display:block;pointer-events:none">';
-        else html+='<div style="background:#07070f;height:180px;display:flex;align-items:center;justify-content:center"><span class="pf" style="font-size:7px;color:#555">Sin imagen</span></div>';
-        (page.slots||[]).forEach(function(slot,si){
-          const sc=S.db.cards.find(c=>c.id===slot.cardId);
-          html+='<div onclick="event.stopPropagation()" style="position:absolute;left:'+slot.x+'%;top:'+slot.y+'%;width:'+slot.w+'%;height:'+slot.h+'%;border:2px solid #4ade80;background:#4ade8022;border-radius:3px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:2px">'
-            +'<span style="background:#4ade80;color:#0d0618;font-size:8px;border-radius:2px;padding:0 3px;font-weight:bold;line-height:13px;align-self:flex-start">'+(si+1)+'</span>'
-            +'<button onclick="doDeleteSlot(\''+page.id+'\',\''+slot.id+'\')" style="background:#f87171;border:none;border-radius:2px;color:white;font-size:9px;cursor:pointer;padding:0 3px;line-height:13px;align-self:flex-end">×</button>'
-            +'</div>';
-        });
-        html+='</div>';
-        if((page.slots||[]).length>0){
-          html+='<div class="pf" style="font-size:6px;color:#60a5fa;margin:10px 0 6px">🃏 Enlazar huecos a cartas</div>';
-          (page.slots||[]).forEach(function(slot,si){
-            html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'
-              +'<span style="background:#4ade80;color:#0d0618;font-size:8px;border-radius:3px;padding:2px 5px;font-weight:bold;flex-shrink:0">'+(si+1)+'</span>'
-              +'<select onchange="doLinkSlotCard(\''+page.id+'\',\''+slot.id+'\',this.value)" style="flex:1;background:#07070f;border:1px solid #333;border-radius:6px;color:#f0d6ff;padding:5px;font-size:11px">'
-              +'<option value="">— Sin carta —</option>';
-            S.db.cards.forEach(function(c){
-              html+='<option value="'+c.id+'"'+(slot.cardId===c.id?' selected':'')+'>'+esc(c.title)+' ('+c.rarity+')</option>';
-            });
-            html+='</select></div>';
-          });
-        }
-        html+='</div>';
-      }
-      html+='</div>';
-    });
-  }
-  html+='</div>';
-
-    html+='<div style="margin-top:24px;padding:14px;background:#1e0a0a;border:1px solid #f8717133;border-radius:10px"><div class="pf" style="font-size:8px;color:#f87171;margin-bottom:10px">⚠️ Zona peligrosa</div><button class="btn-d" onclick="doReset()">Reset completo (conserva cartas y sonidos)</button></div></div>';
-  return html;
-}
-
-function pageMain(){
-  const uInfo=USERS[S.user];
-  const hasBgMusic=!!(S.db.sounds||{}).bgMusic;
-  const _xp=ud().xp||0,_lv=getLevel(_xp),_rank=getRank(_lv);
-  const _xpInLv=_xp-xpToReachLevel(_lv),_xpNeed=xpForNextLevel(_lv);
-  const _xpPct=Math.min(100,Math.round(_xpInLv/_xpNeed*100));
-  const _rIcon=getRankIcon(_rank);
-  const _rankImg=_rIcon?'<img src="'+esc(_rIcon)+'" style="width:18px;height:18px;object-fit:contain;flex-shrink:0">':'<span style="font-size:14px;flex-shrink:0">'+getRankEmoji(_rank)+'</span>';
-  const _xpBar='<div style="display:flex;align-items:center;gap:4px">'+_rankImg+'<div><div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">'+'<span class="pf" style="font-size:7px;color:#60a5fa">Nv.'+_lv+'</span>'+'<span class="pf" style="font-size:6px;color:#93c5fd">'+_xpInLv+'/'+_xpNeed+'</span></div>'+'<div style="background:#1e1040;border-radius:10px;width:62px;height:5px;overflow:hidden">'+'<div style="width:'+_xpPct+'%;height:100%;background:linear-gradient(90deg,#3b82f6,#60a5fa);border-radius:10px;transition:width .4s"></div>'+'</div></div></div>';
-  const muteBtn=hasBgMusic?'<button id="mute-btn" onclick="toggleMute()" style="background:none;border:1px solid #a78bfa44;border-radius:6px;color:#a78bfa;cursor:pointer;padding:4px 8px;font-size:14px">'+(S.muted?'🔇':'🔊')+'</button>':'';
-  let pageContent='';
-  if(S.page==='checklist')pageContent=pageChecklist();
-  else if(S.page==='tienda')pageContent=pageTienda();
-  else if(S.page==='coleccion')pageContent=pageColeccion();
-  else if(S.page==='intercambios')pageContent=pageIntercambios();
-  else if(S.page==='otro')pageContent=pageOtro();
-  else if(S.page==='album')pageContent=pageAlbum();
-  else if(S.page==='eventos')pageContent=pageEventos();
-  else if(S.page==='logros')pageContent=pageLogros();
-  else if(S.page==='album')pageContent=pageAlbum();
-  const navSide=NAV.map(n=>'<button class="ns '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:15px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
-  const navBot=NAV.map(n=>'<button class="nm '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:24px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
-  return '<div style="min-height:100vh"><header style="background:#0f0620;border-bottom:2px solid #ff69b422;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100"><div><div class="pf" style="font-size:8px;color:#ff69b4;line-height:1.9">🕊️ Paloma</div><div class="pf" style="font-size:5px;color:#c084fc">Checklists</div></div><div style="display:flex;align-items:center;gap:9px"><span class="pf" style="font-size:7px;color:'+uInfo.c+'">'+uInfo.name+'</span>'+_xpBar+'<div style="background:#1a0a2e;border:1px solid #fbbf2444;border-radius:20px;padding:4px 11px;white-space:nowrap"><span class="pf" style="font-size:9px;color:#fbbf24">⭐ '+ud().pts+'</span></div>'+muteBtn+'<button onclick="S.user=null;S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;if(bgAudio){bgAudio.pause();bgAudio=null;}render()" style="background:none;border:1px solid #ff69b433;border-radius:6px;color:#ff69b4;cursor:pointer;padding:4px 8px;font-size:13px">✕</button></div></header><div style="display:flex"><div class="snav" style="width:186px;background:#0c0618;border-right:1px solid #ff69b411;padding:12px 8px;display:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto;flex-shrink:0">'+navSide+'</div><main style="flex:1;padding:14px;overflow-y:auto;min-height:calc(100vh - 52px)" class="mpb">'+pageContent+'</main></div><nav class="bnav" style="position:fixed;bottom:0;left:0;right:0;background:#0c0618;border-top:1px solid #ff69b422;z-index:100;display:none">'+navBot+'</nav></div>';
-}
-
-// ─── RENDER ────────────────────────────────────────────────────────────────
-function pageEventos(){
-  const evts=S.db.events||[];
-  const now=Date.now();
-  const active=evts.filter(e=>e.endDate>now);
-  let html='<div style="max-width:680px"><div class="pf" style="font-size:11px;color:#ff69b4;margin-bottom:18px">🎪 Eventos</div>';
-  if(active.length===0){
-    html+='<div style="text-align:center;padding:48px 0"><div style="font-size:52px;margin-bottom:12px">🎪</div><div class="pf" style="font-size:9px;color:#555">No hay eventos activos</div></div>';
-  }else{
-    active.forEach(evt=>{
-      const ep=(ud().eventProgress||{})[evt.id]||{tasks:{},claimed:false,purchased:false,tasksRewarded:{}};
-      const allDone=evt.tasks.every(t=>(ep.tasks[t.id]||0)>=t.target);
-      const diff=Math.max(0,evt.endDate-now);
-      const dd=Math.floor(diff/86400000),hh=Math.floor((diff%86400000)/3600000),mm=Math.floor((diff%3600000)/60000),ss=Math.floor((diff%60000)/1000);
-      html+='<div style="background:#130820;border:2px solid #ff69b433;border-radius:16px;overflow:hidden;margin-bottom:24px">';
-      if(evt.image)html+='<img src="'+esc(evt.image)+'" style="width:100%;height:160px;object-fit:cover" onerror="this.style.display=\'none\'">';
-      html+='<div style="padding:16px">';
-      html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px"><div class="pf" style="font-size:11px;color:#ff69b4">'+esc(evt.title)+'</div><div class="pf evt-countdown" data-end="'+evt.endDate+'" style="font-size:6px;color:#fbbf24;text-align:right;flex-shrink:0;margin-left:8px">'+dd+'d '+hh+'h '+mm+'m '+ss+'s</div></div>';
-      if(evt.description)html+='<div style="font-size:12px;color:#a0a0c0;margin-bottom:14px;line-height:1.6">'+esc(evt.description)+'</div>';
-      html+='<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">';
-      evt.tasks.forEach(task=>{
-        const cur=(ep.tasks[task.id]||0);
-        const pct=Math.min(100,Math.round(cur/task.target*100));
-        const done=cur>=task.target;
-        html+='<div style="background:#0d0618;border:1px solid '+(done?'#4ade8033':'#ff69b422')+';border-radius:10px;padding:10px">';
-        html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span class="pf" style="font-size:7px;color:'+(done?'#4ade80':'#f0d6ff')+'">'+esc(task.title)+'</span><div style="display:flex;gap:6px;flex-shrink:0"><span class="pf" style="font-size:6px;color:#fbbf24">⭐'+task.pts+'</span><span class="pf" style="font-size:6px;color:#60a5fa">+'+task.xp+'XP</span></div></div>';
-        html+='<div style="display:flex;align-items:center;gap:8px">';
-        html+=(ep.tasksRewarded&&ep.tasksRewarded[task.id])?'<button disabled style="background:#07070f;border:1px solid #333;border-radius:6px;color:#444;cursor:not-allowed;padding:2px 12px;font-size:18px;font-family:monospace;flex-shrink:0">-</button>':'<button onclick="updateEventProgress(\''+evt.id+'\',\''+task.id+'\',-1)" style="background:#ff69b411;border:1px solid #ff69b444;border-radius:6px;color:#ff69b4;cursor:pointer;padding:2px 12px;font-size:18px;font-family:monospace;flex-shrink:0">-</button>';;
-        html+='<div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span class="pf" style="font-size:6px;color:#888">'+cur+'/'+task.target+'</span></div><div style="background:#07070f;border-radius:20px;height:7px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+(done?'linear-gradient(90deg,#4ade80,#22d3ee)':'linear-gradient(90deg,#ff69b4,#c084fc)')+';border-radius:20px;transition:width .3s"></div></div></div>';
-        html+='<button onclick="updateEventProgress(\''+evt.id+'\',\''+task.id+'\',1)" style="background:#ff69b411;border:1px solid #ff69b444;border-radius:6px;color:#ff69b4;cursor:pointer;padding:2px 12px;font-size:18px;font-family:monospace;flex-shrink:0">+</button>';
-        html+='</div></div>';
-      });
-      html+='</div>';
-      html+='<div style="margin-bottom:14px"><div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:8px">🎁 Recompensa final</div><div style="display:flex;justify-content:center">';
-      if(ep.claimed){html+=cardHTML(evt.rewardCard,0,false,false);}
-      else{html+=mysteryCard(evt.rewardCard);}
-      html+='</div></div>';
-      if(allDone&&!ep.claimed){
-        html+='<button class="btn" onclick="claimEventReward(\''+evt.id+'\')" style="width:100%;background:linear-gradient(135deg,#ff69b4,#f43f5e)">🎁 Reclamar recompensa final</button>';
-      }else if(ep.claimed){
-        html+='<div class="pf" style="text-align:center;font-size:8px;color:#4ade80;padding:8px">✅ ¡Recompensa obtenida!</div>';
-      }else{
-        const rem=evt.tasks.filter(t=>(ep.tasks[t.id]||0)<t.target).length;
-        html+='<div class="pf" style="text-align:center;font-size:7px;color:#555;padding:8px">Completa '+rem+' tarea'+(rem>1?'s':'')+' más para reclamar</div>';
-      }
-      html+='</div></div>';
-    });
-  }
-  html+='</div>';
-  return html;
-}
-
-function updateEventProgress(evtId,taskId,delta){
-  const evt=(S.db.events||[]).find(e=>e.id===evtId);if(!evt)return;
-  const task=evt.tasks.find(t=>t.id===taskId);if(!task)return;
-  if(!S.db[S.user].eventProgress)S.db[S.user].eventProgress={};
-  if(!S.db[S.user].eventProgress[evtId])S.db[S.user].eventProgress[evtId]={tasks:{},claimed:false,purchased:false,tasksRewarded:{}};
-  const ep=S.db[S.user].eventProgress[evtId];
-  if(!ep.tasksRewarded)ep.tasksRewarded={};
-  const cur=ep.tasks[taskId]||0;
-  if(delta<0&&ep.tasksRewarded[taskId])return;
-  const nv=Math.max(0,Math.min(task.target,cur+delta));
-  if(nv>=task.target&&cur<task.target){
-    if(!confirm('¿Seguro que has completado esta task?'))return;
-    ep.tasksRewarded[taskId]=true;
-    ep.tasks[taskId]=nv;
-    S.db[S.user].pts+=task.pts;
-    gainXP(task.xp);
-  }else{
-    ep.tasks[taskId]=nv;
-  }
-  save();render();
-}
-
-function claimEventReward(evtId){
-  const evt=(S.db.events||[]).find(e=>e.id===evtId);if(!evt)return;
-  if(!S.db[S.user].eventProgress)S.db[S.user].eventProgress={};
-  const ep=S.db[S.user].eventProgress[evtId]||{tasks:{},claimed:false,tasksRewarded:{}};
-  if(ep.claimed)return;
-  if(!evt.tasks.every(t=>(ep.tasks[t.id]||0)>=t.target))return;
-  S.db[S.user].col[evt.rewardCard.id]=1;
-  S.db[S.user].eventProgress[evtId]={...ep,claimed:true};
-  save();render();
-  playSound('acceptTrade');
-  setTimeout(checkAchievements,500);
-}
-
-function buyEventCard(evtId){
-  const evt=(S.db.events||[]).find(e=>e.id===evtId);if(!evt)return;
-  if(ud().pts<300)return;
-  if(!S.db[S.user].eventProgress)S.db[S.user].eventProgress={};
-  const ep=S.db[S.user].eventProgress[evtId]||{tasks:{},claimed:false,purchased:false};
-  if(ep.claimed||ep.purchased)return;
-  S.db[S.user].pts-=300;
-  S.db[S.user].col[evt.rewardCard.id]=1;
-  S.db[S.user].eventProgress[evtId]={...ep,purchased:true};
-  save();render();
-  setTimeout(checkAchievements,500);
-}
-
-let _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',durValue:14,durUnit:'dias'};
-let _adminEvtTasks=[];
-let _adminEvtEditId=null;
-
-function saveAdminEvtForm(){
-  const f=(id,key)=>{const el=document.getElementById(id);if(el)_adminEvt[key]=el.value;};
-  f('ae-title','title');f('ae-image','image');f('ae-desc','desc');
-  f('ae-rtitle','rewardTitle');f('ae-rimage','rewardImage');f('ae-rdesc','rewardDesc');
-  f('ae-enddate','endDateStr');f('ae-endtime','endTimeStr');
-}
-function restoreAdminEvtForm(){
-  const f=(id,key)=>{const el=document.getElementById(id);if(el)el.value=_adminEvt[key]||'';};
-  f('ae-title','title');f('ae-image','image');f('ae-desc','desc');
-  f('ae-rtitle','rewardTitle');f('ae-rimage','rewardImage');f('ae-rdesc','rewardDesc');
-  f('ae-enddate','endDateStr');f('ae-endtime','endTimeStr');
-}
-function doAddEventTask(){
-  saveAdminEvtForm();
-  const title=document.getElementById('aet-title')?.value.trim();
-  const target=Math.max(1,+document.getElementById('aet-target')?.value||1);
-  const pts=+document.getElementById('aet-pts')?.value||10;
-  const xp=+document.getElementById('aet-xp')?.value||5;
-  if(!title)return;
-  _adminEvtTasks.push({id:uid(),title,target,pts,xp});
-  render();window.scrollTo(0,99999);
-}
-function doRemoveEventTask(id){
-  saveAdminEvtForm();
-  _adminEvtTasks=_adminEvtTasks.filter(t=>t.id!==id);
-  render();window.scrollTo(0,99999);
-}
-function doCreateEvent(){
-  try{
-  saveAdminEvtForm();
-  if(!_adminEvt.title||_adminEvtTasks.length===0||!_adminEvt.rewardTitle){flashAdmin('❌ Faltan: título, tareas o carta recompensa');return;}
-  if(!_adminEvt.endDateStr){flashAdmin('❌ Falta la fecha de fin');return;}
-  const now=Date.now();
-  const _endUTC=canaryDateTimeToUTC(_adminEvt.endDateStr,_adminEvt.endTimeStr||'23:59');
-  const evt={id:uid(),title:_adminEvt.title,image:_adminEvt.image,description:_adminEvt.desc,tasks:[..._adminEvtTasks],rewardCard:{id:uid(),title:_adminEvt.rewardTitle,image:_adminEvt.rewardImage,description:_adminEvt.rewardDesc,rarity:'evento'},startDate:now,endDate:_endUTC};
-  if(!S.db.events)S.db.events=[];
-  if(_adminEvtEditId){
-    const oldEvt=(S.db.events||[]).find(e=>e.id===_adminEvtEditId);
-    evt.id=_adminEvtEditId;
-    evt.rewardCard.id=oldEvt?oldEvt.rewardCard.id:evt.rewardCard.id;
-    evt.startDate=oldEvt?oldEvt.startDate:now;
-    evt.endDate=_endUTC;
-    S.db.events=(S.db.events||[]).map(e=>e.id===_adminEvtEditId?evt:e);
-    _adminEvtEditId=null;
-    flashAdmin('✅ Evento actualizado');
-  }else{
-    S.db.events.push(evt);
-    flashAdmin('✅ Evento creado');
-  }
-  _adminEvtTasks=[];
-  _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',endDateStr:'',endTimeStr:'23:59'};
-  save();render();
-  }catch(e){console.error('doCreateEvent error:',e);flashAdmin('❌ Error: '+e.message);}
-}
-function doDeleteEvent(id){
-  if(!confirm('¿Eliminar este evento?'))return;
-  S.db.events=(S.db.events||[]).filter(e=>e.id!==id);
-  save();render();
-}
-function doEditEvent(id){
-  const evt=(S.db.events||[]).find(e=>e.id===id);
-  if(!evt)return;
-  _adminEvtEditId=id;
-  const _cdt=canaryDateTimeStr(evt.endDate);
-  _adminEvt={title:evt.title,image:evt.image||'',desc:evt.description||'',rewardTitle:evt.rewardCard.title,rewardImage:evt.rewardCard.image||'',rewardDesc:evt.rewardCard.description||'',endDateStr:_cdt.date,endTimeStr:_cdt.time};
-  _adminEvtTasks=[...evt.tasks];
-  render();
-  window.scrollTo(0,99999);
-}
-function doCancelEditEvent(){
-  _adminEvtEditId=null;
-  _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',endDateStr:'',endTimeStr:'23:59'};
-  _adminEvtTasks=[];
-  render();
-  window.scrollTo(0,99999);
-}
-
-
-// ─── LOGROS SYSTEM ──────────────────────────────────────────────────────────
-const ACH_CATS={tasks:{lbl:'✅ Tasks',ic:'✅'},coleccionismo:{lbl:'🃏 Coleccionismo',ic:'🃏'},intercambios:{lbl:'🔄 Intercambios',ic:'🔄'},toques:{lbl:'👆 Toques',ic:'👆'},eventos:{lbl:'🎪 Eventos',ic:'🎪'},rango:{lbl:'⭐ Rango',ic:'⭐'}};
-
-function getUserProgress(cat,userId){
-  userId=userId||S.user;
-  const u=S.db[userId]||{};
-  switch(cat){
-    case'tasks':return u.tasksCompleted||0;
-    case'coleccionismo':{const col=u.col||{};return Object.keys(col).filter(k=>col[k]>0).length;}
-    case'intercambios':return u.tradesCompleted||0;
-    case'toques':return u.toquesSent||0;
-    case'eventos':{const ep=u.eventProgress||{};return Object.values(ep).filter(p=>p&&p.claimed).length;}
-    case'rango':return getLevel(u.xp||0);
-    default:return 0;
-  }
-}
-
-function showAchievementNotification(ach){
-  playSound('achievement');
-  const old=document.getElementById('ach-banner');if(old)old.remove();
-  const b=document.createElement('div');b.id='ach-banner';
-  b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:1002;background:linear-gradient(135deg,#fbbf24,#f59e0b);padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 24px #fbbf2466;animation:slideDown .3s ease-out;';
-  b.innerHTML='<div style="font-size:26px">&#127942;</div><div style="flex:1"><div class="pf" style="font-size:8px;color:#1a0a00;margin-bottom:4px">&#161;Logro desbloqueado!</div><div class="pf" style="font-size:6px;color:#7c2d12">'+esc(ach.title)+'</div></div><button onclick="document.getElementById(\'ach-banner\').remove()" style="background:none;border:none;cursor:pointer;color:#1a0a00;font-size:20px;padding:0 4px">&#215;</button>';
-  document.body.appendChild(b);
-  setTimeout(()=>{const el=document.getElementById('ach-banner');if(el)el.remove();},5000);
-}
-
-function checkAchievements(){
-  if(!S.db||!S.user||S.user==='admin')return;
-  const achs=S.db.achievements||[];if(!achs.length)return;
-  if(!S.db[S.user].achievementProgress)S.db[S.user].achievementProgress={};
-  const ap=S.db[S.user].achievementProgress;
-  const newlyUnlocked=[];
-  achs.forEach(ach=>{
-    if(ap[ach.id]&&ap[ach.id].unlocked)return;
-    if(getUserProgress(ach.category)>=ach.required){
-      ap[ach.id]={unlocked:true};
-      newlyUnlocked.push(ach);
-    }
-  });
-  if(newlyUnlocked.length>0){
+  function onEnd(){
+    document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onEnd);
+    document.removeEventListener('touchmove',onMove);document.removeEventListener('touchend',onEnd);
     save();
-    newlyUnlocked.forEach((ach,i)=>setTimeout(()=>showAchievementNotification(ach),i*3200));
   }
+  document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onEnd);
+  document.addEventListener('touchmove',onMove,{passive:false});document.addEventListener('touchend',onEnd);
 }
 
-function achBorderStyle(color,glow){
-  const isM=color==='multicolor';
-  let s='border:'+(isM?'3px solid #ff69b4':'3px solid '+(color||'#fbbf24'));
-  if(isM)s+=';animation:lp 3s ease-in-out infinite';
-  if(glow)s+=';box-shadow:0 0 14px '+(isM?'#ff69b488':((color||'#fbbf24')+'88'));
-  return s;
-}
-
-function pageLogros(){
-  const achs=S.db.achievements||[];
-  const ap=ud().achievementProgress||{};
-  const _lockImg=(S.db.sounds||{}).lockedAchImage||'';
-  const cats=Object.keys(ACH_CATS);
-  const _totalAchs=achs.length,_unlockedCount=achs.filter(a=>ap[a.id]&&ap[a.id].unlocked).length;
-  let html='<div style="max-width:680px"><div style="display:flex;align-items:baseline;gap:12px;margin-bottom:18px"><div class="pf" style="font-size:11px;color:#fbbf24">🏆 Logros</div>'+(_totalAchs>0?'<div class="pf" style="font-size:8px;color:#60a5fa">'+_unlockedCount+'/'+_totalAchs+'</div>':'')+'</div>';
-  let anyAch=false;
-  cats.forEach(cat=>{
-    const catAchs=achs.filter(a=>a.category===cat).sort((a,b)=>a.required-b.required);
-    if(!catAchs.length)return;
-    anyAch=true;
-    const cur=getUserProgress(cat);
-    html+='<div style="margin-bottom:24px"><div class="pf" style="font-size:8px;color:#fbbf24;margin-bottom:12px">'+ACH_CATS[cat].lbl+'</div>';
-    html+='<div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center">';
-    catAchs.forEach(ach=>{
-      const prog=ap[ach.id]||{unlocked:false};
-      const done=prog.unlocked;
-      const inspID=JSON.stringify(ach.id).replace(/"/g,'&quot;');
-      html+='<div onclick="S.inspectAch='+inspID+';render()" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;width:84px">';
-      html+='<div style="width:68px;height:68px;border-radius:50%;position:relative;'+achBorderStyle(ach.color,ach.glow)+';background:#130820;display:flex;align-items:center;justify-content:center;overflow:hidden;'+(done?'':'opacity:.4')+'">';
-      if(done&&ach.image)html+='<img src="'+esc(ach.image)+'" style="width:100%;height:100%;object-fit:cover">';
-      else{if(!done&&_lockImg)html+='<img src="'+esc(_lockImg)+'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.35">';html+='<span style="font-size:26px;position:relative;z-index:1">'+(done?'&#127942;':'&#128274;')+'</span>';}
-      html+='</div>';
-      html+='<div class="pf" style="font-size:5px;color:'+(done?'#fbbf24':'#555')+';text-align:center;line-height:1.6;word-break:break-word">'+esc(ach.title)+'</div>';
-      html+='<div class="pf" style="font-size:5px;color:#666">'+Math.min(cur,ach.required)+'/'+ach.required+'</div>';
-      html+='</div>';
-    });
-    html+='</div></div>';
-  });
-  if(!anyAch)html+='<div style="text-align:center;padding:48px 0"><div style="font-size:52px;margin-bottom:12px">🏆</div><div class="pf" style="font-size:9px;color:#555">No hay logros configurados</div></div>';
-  if(S.inspectAch){
-    const ach=(S.db.achievements||[]).find(a=>a.id===S.inspectAch);
-    if(ach){
-      const prog=ap[ach.id]||{unlocked:false};
-      const cur=getUserProgress(ach.category);
-      html+='<div class="overlay" onclick="S.inspectAch=null;render()"><div onclick="event.stopPropagation()" style="background:#130820;border:2px solid #fbbf24;border-radius:16px;padding:24px;max-width:300px;width:100%;display:flex;flex-direction:column;align-items:center;gap:12px">';
-      html+='<div style="width:100px;height:100px;border-radius:50%;position:relative;'+achBorderStyle(ach.color,ach.glow)+';overflow:hidden;display:flex;align-items:center;justify-content:center">';
-      if(ach.image&&prog.unlocked)html+='<img src="'+esc(ach.image)+'" style="width:100%;height:100%;object-fit:cover">';
-      else{if(!prog.unlocked&&_lockImg)html+='<img src="'+esc(_lockImg)+'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.35">';html+='<span style="font-size:44px;position:relative;z-index:1">'+(prog.unlocked?'&#127942;':'&#128274;')+'</span>';}
-      html+='</div>';
-      html+='<div class="pf" style="font-size:9px;color:#fbbf24;text-align:center">'+esc(ach.title)+'</div>';
-      html+='<div style="font-size:12px;color:#a0a0c0;text-align:center;line-height:1.6">'+esc(ach.description||'')+'</div>';
-      html+='<div class="pf" style="font-size:7px;color:#888">'+Math.min(cur,ach.required)+'/'+ach.required+'</div>';
-      html+='<button class="btn-o" onclick="S.inspectAch=null;render()">Cerrar</button>';
-      html+='</div></div>';
-    }
-  }
-  html+='</div>';
-  return html;
-}
-
-let _adminAch={title:'',image:'',description:'',category:'tasks',required:1,color:'#fbbf24',glow:false};
-let _adminAchEditId=null;
-
-function saveAdminAchForm(){
-  const f=(id,key)=>{const el=document.getElementById(id);if(el)_adminAch[key]=el.value;};
-  f('aa-title','title');f('aa-image','image');f('aa-desc','description');
-  f('aa-cat','category');f('aa-req','required');
-  if(_adminAch.color!=='multicolor'){const el=document.getElementById('aa-color');if(el)_adminAch.color=el.value;}
-  if(_adminAch.glow===undefined)_adminAch.glow=false;
-}
-function restoreAdminAchForm(){
-  const f=(id,key)=>{const el=document.getElementById(id);if(el)el.value=_adminAch[key]||'';};
-  f('aa-title','title');f('aa-image','image');f('aa-desc','description');
-  f('aa-cat','category');f('aa-req','required');f('aa-color','color');
-}
-function doCancelAch(){_adminAchEditId=null;_adminAch={title:'',image:'',description:'',category:'tasks',required:1,color:'#fbbf24',glow:false};render();}
-function doSetMulticolorAch(){saveAdminAchForm();_adminAch.color=(_adminAch.color==='multicolor'?'#fbbf24':'multicolor');render();window.scrollTo(0,99999);}
-function doToggleGlowAch(){saveAdminAchForm();_adminAch.glow=!_adminAch.glow;render();window.scrollTo(0,99999);}
-function doSaveAchievement(){
-  saveAdminAchForm();
-  if(!_adminAch.title){flashAdmin('❌ Falta el título');return;}
-  const ach={id:_adminAchEditId||uid(),title:_adminAch.title,image:_adminAch.image,description:_adminAch.description,category:_adminAch.category,required:Math.max(1,+_adminAch.required||1),color:_adminAch.color||'#fbbf24',glow:!!_adminAch.glow};
-  if(!S.db.achievements)S.db.achievements=[];
-  if(_adminAchEditId){S.db.achievements=S.db.achievements.map(a=>a.id===_adminAchEditId?ach:a);}
-  else{S.db.achievements.push(ach);}
-  _adminAchEditId=null;_adminAch={title:'',image:'',description:'',category:'tasks',required:1,color:'#fbbf24',glow:false};
-  save();render();flashAdmin('✅ Logro guardado');
-}
-function doEditAchievement(id){
-  const ach=(S.db.achievements||[]).find(a=>a.id===id);if(!ach)return;
-  _adminAchEditId=id;
-  _adminAch={title:ach.title,image:ach.image||'',description:ach.description||'',category:ach.category,required:ach.required,color:ach.color||'#fbbf24',glow:!!ach.glow};
-  render();window.scrollTo(0,99999);
-}
-function doDeleteAchievement(id){
-  if(!confirm('¿Eliminar este logro?'))return;
-  S.db.achievements=(S.db.achievements||[]).filter(a=>a.id!==id);
-  save();render();
-}
-
-
-async function downloadCardAsPNG(card){
-  if(!card)return;
-  const r=R[card.rarity]||R.comun;
-  const leg=card.rarity==='legendaria';
-  const sc=3,bw=3*sc,pad=9*sc;
-  const W=148*sc;
-  await document.fonts.ready;
-  function rr(ctx,x,y,w,h,rv){
-    ctx.beginPath();
-    if(ctx.roundRect)ctx.roundRect(x,y,w,h,rv);
-    else{ctx.moveTo(x+rv,y);ctx.lineTo(x+w-rv,y);ctx.quadraticCurveTo(x+w,y,x+w,y+rv);ctx.lineTo(x+w,y+h-rv);ctx.quadraticCurveTo(x+w,y+h,x+w-rv,y+h);ctx.lineTo(x+rv,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-rv);ctx.lineTo(x,y+rv);ctx.quadraticCurveTo(x,y,x+rv,y);}
-    ctx.closePath();
-  }
-  const innerW=W-2*pad-2*bw;
-  const titleFz=7*sc,imgSz=innerW,descFz=6*sc,descPad=5*sc,rarFz=5*sc;
-  // Measure title
-  const tmp=document.createElement('canvas').getContext('2d');
-  tmp.font=`${titleFz}px 'Press Start 2P',monospace`;
-  let tLines=[],tL='';
-  for(const w of (card.title||'???').split(' ')){const t=tL+(tL?' ':'')+w;if(tmp.measureText(t).width>innerW&&tL){tLines.push(tL);tL=w;}else tL=t;}
-  if(tL)tLines.push(tL);
-  const titleH=Math.max(22*sc,tLines.length*(titleFz*1.6));
-  // Measure description
-  tmp.font=`${descFz}px monospace`;
-  let dLines=[],dL='';
-  for(const w of (card.description||'Sin descripción').split(' ')){const t=dL+(dL?' ':'')+w;if(tmp.measureText(t).width>(innerW-2*descPad)&&dL){dLines.push(dL);dL=w;}else dL=t;}
-  if(dL)dLines.push(dL);
-  const descH=Math.max(36*sc,dLines.length*(descFz*1.7)+2*descPad);
-  const totalH=Math.ceil(bw+pad+titleH+5*sc+imgSz+5*sc+descH+5*sc+rarFz*2+pad+bw);
-  // Create canvas
-  const cvs=document.createElement('canvas');cvs.width=W;cvs.height=totalH;
-  const ctx=cvs.getContext('2d');
-  await document.fonts.ready;
-  // Background gradient
-  const bgMap={comun:['#1a1a2e','#0d0d1a'],poco_comun:['#051828','#02101e'],rara:['#041a08','#021008'],epica:['#1a0530','#0d0118'],legendaria:['#1a0e00','#100900'],evento:['#2a0520','#1a030f']};
-  const [c1,c2]=bgMap[card.rarity]||bgMap.comun;
-  const gr=ctx.createLinearGradient(0,0,W*0.6,totalH);
-  gr.addColorStop(0,c1);gr.addColorStop(1,c2);
-  rr(ctx,0,0,W,totalH,8*sc);ctx.fillStyle=gr;ctx.fill();
-  // Border + glow
-  if(r.glow&&!leg){ctx.shadowColor=r.b;ctx.shadowBlur=10*sc;}
-  ctx.strokeStyle=leg?'#fbbf24':r.b;ctx.lineWidth=bw;
-  rr(ctx,bw/2,bw/2,W-bw,totalH-bw,7*sc);ctx.stroke();ctx.shadowBlur=0;
-  // Layout positions
-  const cx=bw+pad;let cy=bw+pad;
-  // Title (Press Start 2P, rarity color, centered)
-  const titleLH=titleH/Math.max(1,tLines.length);
-  ctx.fillStyle=r.tc;ctx.font=`${titleFz}px 'Press Start 2P',monospace`;
-  ctx.textAlign='center';ctx.textBaseline='middle';
-  tLines.forEach((l,i)=>ctx.fillText(l,W/2,cy+titleLH*(i+0.5)));
-  cy+=titleH+5*sc;
-  // Image box (dark bg + rarity border)
-  rr(ctx,cx,cy,imgSz,imgSz,4*sc);ctx.fillStyle='#070712';ctx.fill();
-  ctx.strokeStyle=r.b+'33';ctx.lineWidth=sc;
-  rr(ctx,cx,cy,imgSz,imgSz,4*sc);ctx.stroke();
-  if(card.image){
-    try{
-      let _fURL=card.image;
-      const _ghM=_fURL.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^?]+)/);
-      if(_ghM)_fURL='https://raw.githubusercontent.com/'+_ghM[1]+'/'+_ghM[2]+'/'+_ghM[3];
-      const _r=await fetch(_fURL);if(!_r.ok)throw new Error('HTTP '+_r.status);
-      const _b=await _r.blob();
-      const _d=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(_b);});
-      const _i=new Image();await new Promise((res,rej)=>{_i.onload=res;_i.onerror=rej;_i.src=_d;});
-      ctx.save();rr(ctx,cx,cy,imgSz,imgSz,4*sc);ctx.clip();ctx.drawImage(_i,cx,cy,imgSz,imgSz);ctx.restore();
-    }catch(e){console.error('PNG img:',e);}
-  }
-  cy+=imgSz+5*sc;
-  // Description box (dark bg, monospace, gray text)
-  rr(ctx,cx,cy,innerW,descH,4*sc);ctx.fillStyle='#050510';ctx.fill();
-  ctx.fillStyle='#777777';ctx.font=`${descFz}px monospace`;
-  ctx.textAlign='left';ctx.textBaseline='top';
-  dLines.forEach((l,i)=>ctx.fillText(l,cx+descPad,cy+descPad+i*(descFz*1.7)));
-  cy+=descH+5*sc;
-  // Rarity label
-  ctx.fillStyle=r.tc;ctx.font=`${rarFz}px 'Press Start 2P',monospace`;
-  ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText(r.lbl.toUpperCase(),W/2,cy+rarFz);
-  // Download
-  const a=document.createElement('a');
-  a.download=((card.title||'carta').replace(/[^\w\s]/g,'').trim().replace(/\s+/g,'_')||'carta')+'.png';
-  a.href=cvs.toDataURL('image/png');a.click();
-}
-
-// ─── ALBUM SYSTEM ─────────────────────────────────────────────────────────────
-function playAlbumSound(key){
-  const url=((S.db.album||{}).sounds||{})[key];
-  if(!url||S.muted)return;
-  try{const a=new Audio(url);a.volume=0.7;a.play();}catch(e){}
-}
 function doFlipPage(dir){
   const album=S.db.album||{};
   const total=1+(album.pages||[]).length+1;
@@ -1425,6 +826,615 @@ function pageAlbum(){
     html+='<div class="overlay" onclick="S.inspect=null;render()"><div onclick="event.stopPropagation()" style="display:flex;flex-direction:column;align-items:center;gap:14px;background:#130820;border:2px solid #ff69b433;border-radius:16px;padding:20px;width:calc(100% - 32px);max-width:340px"><div style="transform:scale(1.3);transform-origin:center top;margin-bottom:85px;flex-shrink:0">'+cardHTML(c)+'</div><div class="pf" style="font-size:7px;color:#888">'+q+' en tu colección</div><button class="btn-o" onclick="S.inspect=null;render()" style="width:100%">Cerrar</button></div></div>';
   }
   return html;
+}
+
+function pageMain(){
+  let pageContent='';
+  const nav=NAV.map(n=>'<button class="nm '+(S.page===n.id?'nm-a':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:18px">'+n.ic+'</span><span>'+n.lbl+'</span></button>').join('');
+  if(S.page==='checklist')pageContent=pageChecklist();
+  else if(S.page==='tienda')pageContent=pageTienda();
+  else if(S.page==='coleccion')pageContent=pageColeccion();
+  else if(S.page==='intercambios')pageContent=pageIntercambios();
+  else if(S.page==='eventos')pageContent=pageEventos();
+  else if(S.page==='logros')pageContent=pageLogros();
+  else if(S.page==='otro')pageContent=pageOtro();
+  else if(S.page==='album')pageContent=pageAlbum();
+  else pageContent=pageChecklist();
+  const muteBtn='<button onclick="S.muted=!S.muted;if(S.muted&&bgAudio){bgAudio.pause();}else if(!S.muted&&S.page===\'checklist\'){startBgMusic();}render()" style="background:none;border:none;cursor:pointer;font-size:16px;color:#888;padding:4px">'+(S.muted?'🔇':'🔊')+'</button>';
+  const uData=ud(),lv=getLevel(uData.xp||0),rank=getRank(lv),rankIcon=getRankIcon(rank);
+  const rankImg=rankIcon?'<img src="'+esc(rankIcon)+'" style="width:20px;height:20px;object-fit:contain">':'<span style="font-size:14px">'+getRankEmoji(rank)+'</span>';
+  const xpCur=(uData.xp||0)-xpToReachLevel(lv),xpNxt=xpToReachLevel(lv+1)-xpToReachLevel(lv),xpPct=Math.min(100,Math.round(xpCur/Math.max(1,xpNxt)*100));
+  const xpBar='<div style="display:flex;align-items:center;gap:5px"><div style="width:60px;height:5px;background:#1a0a2e;border-radius:3px;overflow:hidden"><div style="width:'+xpPct+'%;height:100%;background:linear-gradient(90deg,#60a5fa,#c084fc);border-radius:3px;transition:width .4s"></div></div><span class="pf" style="font-size:5px;color:#888">'+rank.charAt(0).toUpperCase()+rank.slice(1)+'</span></div>';
+  const hdr='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0d0618;border-bottom:1px solid #ff69b422;position:sticky;top:0;z-index:100">'
+    +'<div style="display:flex;align-items:center;gap:8px">'+rankImg+'<div><div class="pf" style="font-size:8px;color:#f0d6ff">'+USERS[S.user].name+'</div>'+xpBar+'</div></div>'
+    +'<div style="display:flex;align-items:center;gap:6px"><div style="background:#1a0a2e;border:1px solid #fbbf2444;border-radius:20px;padding:4px 11px;white-space:nowrap"><span class="pf" style="font-size:9px;color:#fbbf24">⭐ '+ud().pts+'</span></div>'+muteBtn+'<button onclick="S.user=null;S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;if(bgAudio){bgAudio.pause();bgAudio=null;}render()" style="background:none;border:none;cursor:pointer;font-size:14px;color:#666">⏻</button></div></div>';
+  const bnav='<nav class="bnav" style="position:fixed;bottom:0;left:0;right:0;background:#0d0618;border-top:1px solid #ff69b422;display:flex;z-index:200;padding:0 4px">'+nav+'</nav>';
+  return hdr+'<div class="mpb" style="padding:16px">'+pageContent+'</div>'+bnav;
+}
+
+// ─── EVENT FUNCTIONS ────────────────────────────────────────────────────────
+function pageEventos(){
+  const evts=S.db.events||[];
+  const now=Date.now();
+  const active=evts.filter(e=>e.endDate>now);
+  const expired=evts.filter(e=>e.endDate<=now);
+  let html='<div style="max-width:680px"><div class="pf" style="font-size:11px;color:#ff69b4;margin-bottom:18px">🎪 Eventos</div>';
+  if(active.length===0&&expired.length===0){
+    html+='<div style="text-align:center;padding:48px 0"><div style="font-size:52px;margin-bottom:12px">🎪</div><div class="pf" style="font-size:9px;color:#555">No hay eventos activos</div></div>';
+  }
+  active.forEach(evt=>{
+    const ep=(ud().eventProgress||{})[evt.id]||{tasks:{},claimed:false,purchased:false,tasksRewarded:{}};
+    const allDone=evt.tasks.every(t=>(ep.tasks[t.id]||0)>=t.target);
+    const diff=Math.max(0,evt.endDate-now);
+    const dd=Math.floor(diff/86400000),hh=Math.floor((diff%86400000)/3600000),mm=Math.floor((diff%3600000)/60000),ss=Math.floor((diff%60000)/1000);
+    html+='<div style="background:#130820;border:2px solid #ff69b433;border-radius:16px;overflow:hidden;margin-bottom:24px">';
+    if(evt.image)html+='<img src="'+esc(evt.image)+'" style="width:100%;height:160px;object-fit:cover" onerror="this.style.display=\'none\'">';
+    html+='<div style="padding:16px">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px"><div class="pf" style="font-size:11px;color:#ff69b4">'+esc(evt.title)+'</div><div class="pf evt-countdown" data-end="'+evt.endDate+'" style="font-size:6px;color:#fbbf24;text-align:right;flex-shrink:0;margin-left:8px">'+dd+'d '+hh+'h '+mm+'m '+ss+'s</div></div>';
+    if(evt.description)html+='<div style="font-size:12px;color:#a0a0c0;margin-bottom:14px;line-height:1.6">'+esc(evt.description)+'</div>';
+    html+='<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">';
+    evt.tasks.forEach(task=>{
+      const cur=(ep.tasks[task.id]||0);
+      const pct=Math.min(100,Math.round(cur/task.target*100));
+      const done=cur>=task.target;
+      const isRew=ep.tasksRewarded&&ep.tasksRewarded[task.id];
+      html+='<div style="background:#0d0618;border:1px solid '+(done?'#4ade8033':'#ff69b422')+';border-radius:10px;padding:10px">';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span class="pf" style="font-size:7px;color:'+(done?'#4ade80':'#f0d6ff')+'">'+esc(task.title)+'</span><div style="display:flex;gap:6px;flex-shrink:0"><span class="pf" style="font-size:6px;color:#fbbf24">⭐'+task.pts+'</span><span class="pf" style="font-size:6px;color:#60a5fa">+'+task.xp+'XP</span></div></div>';
+      html+='<div style="display:flex;align-items:center;gap:8px">';
+      const _mBtn=isRew?'<button disabled style="background:#07070f;border:1px solid #333;border-radius:6px;color:#444;cursor:not-allowed;padding:2px 12px;font-size:18px;font-family:monospace;flex-shrink:0">-</button>':'<button onclick="updateEventProgress(\''+evt.id+'\',\''+task.id+'\',-1)" style="background:#ff69b411;border:1px solid #ff69b444;border-radius:6px;color:#ff69b4;cursor:pointer;padding:2px 12px;font-size:18px;font-family:monospace;flex-shrink:0">-</button>';
+      html+=_mBtn;
+      html+='<div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span class="pf" style="font-size:6px;color:#888">'+cur+'/'+task.target+'</span></div><div style="background:#07070f;border-radius:20px;height:7px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+(done?'linear-gradient(90deg,#4ade80,#22d3ee)':'linear-gradient(90deg,#ff69b4,#c084fc)')+';border-radius:20px;transition:width .3s"></div></div></div>';
+      html+='<button onclick="updateEventProgress(\''+evt.id+'\',\''+task.id+'\',1)" style="background:#ff69b411;border:1px solid #ff69b444;border-radius:6px;color:#ff69b4;cursor:pointer;padding:2px 12px;font-size:18px;font-family:monospace;flex-shrink:0">+</button>';
+      html+='</div></div>';
+    });
+    html+='</div>';
+    html+='<div style="margin-bottom:14px"><div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:8px">🎁 Recompensa final</div><div style="display:flex;justify-content:center">';
+    if(ep.claimed){html+=cardHTML(evt.rewardCard,0,false,false);}
+    else{html+=mysteryCard(evt.rewardCard);}
+    html+='</div></div>';
+    if(allDone&&!ep.claimed){
+      html+='<button class="btn" onclick="claimEventReward(\''+evt.id+'\')" style="width:100%;background:linear-gradient(135deg,#ff69b4,#f43f5e)">🎁 Reclamar recompensa final</button>';
+    }else if(ep.claimed){
+      html+='<div class="pf" style="text-align:center;font-size:8px;color:#4ade80;padding:8px">✅ ¡Recompensa obtenida!</div>';
+    }else{
+      const rem=evt.tasks.filter(t=>(ep.tasks[t.id]||0)<t.target).length;
+      html+='<div class="pf" style="text-align:center;font-size:7px;color:#555;padding:8px">Completa '+rem+' tarea'+(rem>1?'s':'')+' más para reclamar</div>';
+    }
+    html+='</div></div>';
+  });
+  html+='</div>';
+  return html;
+}
+
+function updateEventProgress(evtId,taskId,delta){
+  const evt=(S.db.events||[]).find(e=>e.id===evtId);if(!evt)return;
+  const task=evt.tasks.find(t=>t.id===taskId);if(!task)return;
+  if(!S.db[S.user].eventProgress)S.db[S.user].eventProgress={};
+  if(!S.db[S.user].eventProgress[evtId])S.db[S.user].eventProgress[evtId]={tasks:{},claimed:false,purchased:false,tasksRewarded:{}};
+  const ep=S.db[S.user].eventProgress[evtId];
+  if(!ep.tasksRewarded)ep.tasksRewarded={};
+  const cur=ep.tasks[taskId]||0;
+  if(delta<0&&ep.tasksRewarded[taskId])return;
+  const nv=Math.max(0,Math.min(task.target,cur+delta));
+  if(nv>=task.target&&cur<task.target){
+    if(!confirm('¿Seguro que has completado esta task?'))return;
+    ep.tasksRewarded[taskId]=true;ep.tasks[taskId]=nv;
+    S.db[S.user].pts+=task.pts;gainXP(task.xp);
+  }else{ep.tasks[taskId]=nv;}
+  save();render();
+}
+
+function claimEventReward(evtId){
+  const evt=(S.db.events||[]).find(e=>e.id===evtId);if(!evt)return;
+  if(!S.db[S.user].eventProgress)S.db[S.user].eventProgress={};
+  const ep=S.db[S.user].eventProgress[evtId]||{tasks:{},claimed:false,tasksRewarded:{}};
+  if(ep.claimed)return;
+  if(!evt.tasks.every(t=>(ep.tasks[t.id]||0)>=t.target))return;
+  S.db[S.user].col[evt.rewardCard.id]=1;
+  S.db[S.user].eventProgress[evtId]={...ep,claimed:true};
+  save();render();playSound('acceptTrade');
+  setTimeout(checkAchievements,500);
+}
+
+function buyEventCard(evtId){
+  const evt=(S.db.events||[]).find(e=>e.id===evtId);if(!evt)return;
+  if(ud().pts<300)return;
+  if(!S.db[S.user].eventProgress)S.db[S.user].eventProgress={};
+  const ep=S.db[S.user].eventProgress[evtId]||{tasks:{},claimed:false,purchased:false};
+  if(ep.claimed||ep.purchased)return;
+  S.db[S.user].pts-=300;
+  S.db[S.user].col[evt.rewardCard.id]=1;
+  S.db[S.user].eventProgress[evtId]={...ep,purchased:true};
+  save();render();setTimeout(checkAchievements,500);
+}
+
+function canaryDateTimeStr(ts){
+  try{const d=new Date(ts);const s=d.toLocaleString('sv-SE',{timeZone:'Atlantic/Canary'});return{date:s.slice(0,10),time:s.slice(11,16)};}
+  catch(e){return{date:'',time:'23:59'};}
+}
+
+let _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',endDateStr:'',endTimeStr:'23:59'};
+let _adminEvtTasks=[];
+let _adminEvtEditId=null;
+
+function saveAdminEvtForm(){
+  const f=(id,key)=>{const el=document.getElementById(id);if(el)_adminEvt[key]=el.value;};
+  f('ae-title','title');f('ae-image','image');f('ae-desc','desc');
+  f('ae-rtitle','rewardTitle');f('ae-rimage','rewardImage');f('ae-rdesc','rewardDesc');
+  f('ae-enddate','endDateStr');f('ae-endtime','endTimeStr');
+}
+function restoreAdminEvtForm(){
+  const f=(id,key)=>{const el=document.getElementById(id);if(el)el.value=_adminEvt[key]||'';};
+  f('ae-title','title');f('ae-image','image');f('ae-desc','desc');
+  f('ae-rtitle','rewardTitle');f('ae-rimage','rewardImage');f('ae-rdesc','rewardDesc');
+  f('ae-enddate','endDateStr');f('ae-endtime','endTimeStr');
+}
+function doAddEventTask(){
+  saveAdminEvtForm();
+  const title=document.getElementById('aet-title')?.value.trim();
+  const target=Math.max(1,+document.getElementById('aet-target')?.value||1);
+  const pts=+document.getElementById('aet-pts')?.value||10;
+  const xp=+document.getElementById('aet-xp')?.value||5;
+  if(!title)return;
+  _adminEvtTasks.push({id:uid(),title,target,pts,xp});
+  render();window.scrollTo(0,99999);
+}
+function doRemoveEventTask(id){
+  saveAdminEvtForm();_adminEvtTasks=_adminEvtTasks.filter(t=>t.id!==id);
+  render();window.scrollTo(0,99999);
+}
+function doCreateEvent(){
+  try{
+  saveAdminEvtForm();
+  if(!_adminEvt.title||_adminEvtTasks.length===0||!_adminEvt.rewardTitle){flashAdmin('❌ Faltan: título, tareas o carta recompensa');return;}
+  if(!_adminEvt.endDateStr){flashAdmin('❌ Falta la fecha de fin');return;}
+  const now=Date.now();
+  const _endUTC=canaryDateTimeToUTC(_adminEvt.endDateStr,_adminEvt.endTimeStr||'23:59');
+  const evt={id:uid(),title:_adminEvt.title,image:_adminEvt.image,description:_adminEvt.desc,tasks:[..._adminEvtTasks],rewardCard:{id:uid(),title:_adminEvt.rewardTitle,image:_adminEvt.rewardImage,description:_adminEvt.rewardDesc,rarity:'evento'},startDate:now,endDate:_endUTC};
+  if(!S.db.events)S.db.events=[];
+  if(_adminEvtEditId){
+    const oldEvt=(S.db.events||[]).find(e=>e.id===_adminEvtEditId);
+    evt.id=_adminEvtEditId;evt.rewardCard.id=oldEvt?oldEvt.rewardCard.id:evt.rewardCard.id;
+    evt.startDate=oldEvt?oldEvt.startDate:now;evt.endDate=_endUTC;
+    S.db.events=(S.db.events||[]).map(e=>e.id===_adminEvtEditId?evt:e);
+    _adminEvtEditId=null;flashAdmin('✅ Evento actualizado');
+  }else{S.db.events.push(evt);flashAdmin('✅ Evento creado');}
+  _adminEvtTasks=[];
+  _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',endDateStr:'',endTimeStr:'23:59'};
+  save();render();
+  }catch(e){console.error('doCreateEvent:',e);flashAdmin('❌ Error: '+e.message);}
+}
+function doDeleteEvent(id){if(!confirm('¿Eliminar este evento?'))return;S.db.events=(S.db.events||[]).filter(e=>e.id!==id);save();render();}
+function doEditEvent(id){
+  const evt=(S.db.events||[]).find(e=>e.id===id);if(!evt)return;
+  _adminEvtEditId=id;
+  const _cdt=canaryDateTimeStr(evt.endDate);
+  _adminEvt={title:evt.title,image:evt.image||'',desc:evt.description||'',rewardTitle:evt.rewardCard.title,rewardImage:evt.rewardCard.image||'',rewardDesc:evt.rewardCard.description||'',endDateStr:_cdt.date,endTimeStr:_cdt.time};
+  _adminEvtTasks=[...evt.tasks];render();window.scrollTo(0,99999);
+}
+function doCancelEditEvent(){
+  _adminEvtEditId=null;
+  _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',endDateStr:'',endTimeStr:'23:59'};
+  _adminEvtTasks=[];render();window.scrollTo(0,99999);
+}
+
+// ─── ACHIEVEMENT FUNCTIONS ──────────────────────────────────────────────────
+const ACH_CATS={tasks:{lbl:'✅ Tasks',ic:'✅'},coleccionismo:{lbl:'🃏 Coleccionismo',ic:'🃏'},intercambios:{lbl:'🔄 Intercambios',ic:'🔄'},toques:{lbl:'👆 Toques',ic:'👆'},eventos:{lbl:'🎪 Eventos',ic:'🎪'},rango:{lbl:'⭐ Rango',ic:'⭐'}};
+
+function getUserProgress(cat,userId){
+  userId=userId||S.user;
+  const u=S.db[userId]||{};
+  switch(cat){
+    case'tasks':return u.tasksCompleted||0;
+    case'coleccionismo':{const col=u.col||{};return Object.keys(col).filter(k=>col[k]>0).length;}
+    case'intercambios':return u.tradesCompleted||0;
+    case'toques':return u.toquesSent||0;
+    case'eventos':{const ep=u.eventProgress||{};return Object.values(ep).filter(p=>p&&p.claimed).length;}
+    case'rango':return getLevel(u.xp||0);
+    default:return 0;
+  }
+}
+
+function showAchievementNotification(ach){
+  playSound('achievement');
+  const old=document.getElementById('ach-banner');if(old)old.remove();
+  const b=document.createElement('div');b.id='ach-banner';
+  b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:1002;background:linear-gradient(135deg,#fbbf24,#f59e0b);padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 24px #fbbf2466;animation:slideDown .3s ease-out;';
+  b.innerHTML='<div style="font-size:26px">&#127942;</div><div style="flex:1"><div class="pf" style="font-size:8px;color:#1a0a00;margin-bottom:4px">&#161;Logro desbloqueado!</div><div class="pf" style="font-size:6px;color:#7c2d12">'+esc(ach.title)+'</div></div><button onclick="document.getElementById(\'ach-banner\').remove()" style="background:none;border:none;cursor:pointer;color:#1a0a00;font-size:20px;padding:0 4px">&#215;</button>';
+  document.body.appendChild(b);
+  setTimeout(()=>{const el=document.getElementById('ach-banner');if(el)el.remove();},5000);
+}
+
+function checkAchievements(){
+  if(!S.db||!S.user||S.user==='admin')return;
+  const achs=S.db.achievements||[];if(!achs.length)return;
+  if(!S.db[S.user].achievementProgress)S.db[S.user].achievementProgress={};
+  const ap=S.db[S.user].achievementProgress;
+  const newlyUnlocked=[];
+  achs.forEach(ach=>{
+    if(ap[ach.id]&&ap[ach.id].unlocked)return;
+    if(getUserProgress(ach.category)>=ach.required){ap[ach.id]={unlocked:true};newlyUnlocked.push(ach);}
+  });
+  if(newlyUnlocked.length>0){save();newlyUnlocked.forEach((ach,i)=>setTimeout(()=>showAchievementNotification(ach),i*3200));}
+}
+
+function achBorderStyle(color,glow){
+  const isM=color==='multicolor';
+  let s='border:'+(isM?'3px solid #ff69b4':'3px solid '+(color||'#fbbf24'));
+  if(isM)s+=';animation:lp 3s ease-in-out infinite';
+  if(glow)s+=';box-shadow:0 0 14px '+(isM?'#ff69b488':((color||'#fbbf24')+'88'));
+  return s;
+}
+
+function pageLogros(){
+  const achs=S.db.achievements||[];
+  const ap=ud().achievementProgress||{};
+  const _lockImg=(S.db.sounds||{}).lockedAchImage||'';
+  const _totalAchs=achs.length,_unlockedCount=achs.filter(a=>ap[a.id]&&ap[a.id].unlocked).length;
+  let html='<div style="max-width:680px"><div style="display:flex;align-items:baseline;gap:12px;margin-bottom:18px"><div class="pf" style="font-size:11px;color:#fbbf24">🏆 Logros</div>'+(_totalAchs>0?'<div class="pf" style="font-size:8px;color:#60a5fa">'+_unlockedCount+'/'+_totalAchs+'</div>':'')+'</div>';
+  let anyAch=false;
+  Object.keys(ACH_CATS).forEach(cat=>{
+    const catAchs=achs.filter(a=>a.category===cat).sort((a,b)=>a.required-b.required);
+    if(!catAchs.length)return;
+    anyAch=true;
+    const cur=getUserProgress(cat);
+    html+='<div style="margin-bottom:24px"><div class="pf" style="font-size:8px;color:#fbbf24;margin-bottom:12px">'+ACH_CATS[cat].lbl+'</div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center">';
+    catAchs.forEach(ach=>{
+      const prog=ap[ach.id]||{unlocked:false};
+      const done=prog.unlocked;
+      const inspID=JSON.stringify(ach.id).replace(/"/g,'&quot;');
+      html+='<div onclick="S.inspectAch='+inspID+';render()" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;width:84px">';
+      html+='<div style="width:68px;height:68px;border-radius:50%;position:relative;'+achBorderStyle(ach.color,ach.glow)+';background:#130820;display:flex;align-items:center;justify-content:center;overflow:hidden;'+(done?'':'opacity:.5')+'">';
+      if(done&&ach.image)html+='<img src="'+esc(ach.image)+'" style="width:100%;height:100%;object-fit:cover">';
+      else{if(!done&&_lockImg)html+='<img src="'+esc(_lockImg)+'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.35">';html+='<span style="font-size:26px;position:relative;z-index:1">'+(done?'&#127942;':'&#128274;')+'</span>';}
+      html+='</div>';
+      html+='<div class="pf" style="font-size:5px;color:'+(done?'#fbbf24':'#555')+';text-align:center;line-height:1.6;word-break:break-word">'+esc(ach.title)+'</div>';
+      html+='<div class="pf" style="font-size:5px;color:#666">'+Math.min(cur,ach.required)+'/'+ach.required+'</div>';
+      html+='</div>';
+    });
+    html+='</div></div>';
+  });
+  if(!anyAch)html+='<div style="text-align:center;padding:48px 0"><div style="font-size:52px;margin-bottom:12px">🏆</div><div class="pf" style="font-size:9px;color:#555">No hay logros configurados</div></div>';
+  if(S.inspectAch){
+    const ach=(S.db.achievements||[]).find(a=>a.id===S.inspectAch);
+    if(ach){
+      const prog=ap[ach.id]||{unlocked:false};
+      const cur=getUserProgress(ach.category);
+      const done=prog.unlocked;
+      html+='<div class="overlay" onclick="S.inspectAch=null;render()"><div onclick="event.stopPropagation()" style="background:#130820;border:2px solid #fbbf24;border-radius:16px;padding:24px;max-width:300px;width:100%;display:flex;flex-direction:column;align-items:center;gap:12px">';
+      html+='<div style="width:100px;height:100px;border-radius:50%;position:relative;'+achBorderStyle(ach.color,ach.glow)+';overflow:hidden;display:flex;align-items:center;justify-content:center">';
+      if(ach.image&&done)html+='<img src="'+esc(ach.image)+'" style="width:100%;height:100%;object-fit:cover">';
+      else{if(!done&&_lockImg)html+='<img src="'+esc(_lockImg)+'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.35">';html+='<span style="font-size:44px;position:relative;z-index:1">'+(done?'&#127942;':'&#128274;')+'</span>';}
+      html+='</div>';
+      html+='<div class="pf" style="font-size:9px;color:#fbbf24;text-align:center">'+esc(ach.title)+'</div>';
+      html+='<div style="font-size:12px;color:#a0a0c0;text-align:center;line-height:1.6">'+esc(ach.description||'')+'</div>';
+      html+='<div class="pf" style="font-size:7px;color:#888">'+Math.min(cur,ach.required)+'/'+ach.required+'</div>';
+      html+='<button class="btn-o" onclick="S.inspectAch=null;render()">Cerrar</button>';
+      html+='</div></div>';
+    }
+  }
+  html+='</div>';
+  return html;
+}
+
+let _adminAch={title:'',image:'',description:'',category:'tasks',required:1,color:'#fbbf24',glow:false};
+let _adminAchEditId=null;
+
+function saveAdminAchForm(){
+  const f=(id,key)=>{const el=document.getElementById(id);if(el)_adminAch[key]=el.value;};
+  f('aa-title','title');f('aa-image','image');f('aa-desc','description');
+  f('aa-cat','category');f('aa-req','required');
+  if(_adminAch.color!=='multicolor'){const el=document.getElementById('aa-color');if(el)_adminAch.color=el.value;}
+  if(_adminAch.glow===undefined)_adminAch.glow=false;
+}
+function restoreAdminAchForm(){
+  const f=(id,key)=>{const el=document.getElementById(id);if(el)el.value=_adminAch[key]||'';};
+  f('aa-title','title');f('aa-image','image');f('aa-desc','description');
+  f('aa-cat','category');f('aa-req','required');f('aa-color','color');
+}
+function doSaveAchievement(){
+  saveAdminAchForm();
+  if(!_adminAch.title){flashAdmin('❌ Falta el título');return;}
+  const ach={id:_adminAchEditId||uid(),title:_adminAch.title,image:_adminAch.image,description:_adminAch.description,category:_adminAch.category,required:Math.max(1,+_adminAch.required||1),color:_adminAch.color||'#fbbf24',glow:!!_adminAch.glow};
+  if(!S.db.achievements)S.db.achievements=[];
+  if(_adminAchEditId){S.db.achievements=S.db.achievements.map(a=>a.id===_adminAchEditId?ach:a);}
+  else{S.db.achievements.push(ach);}
+  _adminAchEditId=null;_adminAch={title:'',image:'',description:'',category:'tasks',required:1,color:'#fbbf24',glow:false};
+  save();render();flashAdmin('✅ Logro guardado');
+}
+function doEditAchievement(id){
+  const ach=(S.db.achievements||[]).find(a=>a.id===id);if(!ach)return;
+  _adminAchEditId=id;
+  _adminAch={title:ach.title,image:ach.image||'',description:ach.description||'',category:ach.category,required:ach.required,color:ach.color||'#fbbf24',glow:!!ach.glow};
+  render();window.scrollTo(0,99999);
+}
+function doDeleteAchievement(id){
+  if(!confirm('¿Eliminar este logro?'))return;
+  S.db.achievements=(S.db.achievements||[]).filter(a=>a.id!==id);
+  save();render();
+}
+function doCancelAch(){_adminAchEditId=null;_adminAch={title:'',image:'',description:'',category:'tasks',required:1,color:'#fbbf24',glow:false};render();}
+function doSetMulticolorAch(){saveAdminAchForm();_adminAch.color=(_adminAch.color==='multicolor'?'#fbbf24':'multicolor');render();window.scrollTo(0,99999);}
+function doToggleGlowAch(){saveAdminAchForm();_adminAch.glow=!_adminAch.glow;render();window.scrollTo(0,99999);}
+
+// ─── DOWNLOAD CARD PNG ───────────────────────────────────────────────────────
+async function downloadCardAsPNG(card){
+  if(!card)return;
+  const r=R[card.rarity]||R.comun;
+  const leg=card.rarity==='legendaria';
+  const sc=3,bw=3*sc,pad=9*sc;
+  const W=148*sc;
+  await document.fonts.ready;
+  function rr(ctx,x,y,w,h,rv){ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,rv);else{ctx.moveTo(x+rv,y);ctx.lineTo(x+w-rv,y);ctx.quadraticCurveTo(x+w,y,x+w,y+rv);ctx.lineTo(x+w,y+h-rv);ctx.quadraticCurveTo(x+w,y+h,x+w-rv,y+h);ctx.lineTo(x+rv,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-rv);ctx.lineTo(x,y+rv);ctx.quadraticCurveTo(x,y,x+rv,y);}ctx.closePath();}
+  const innerW=W-2*pad-2*bw;
+  const titleFz=7*sc,imgSz=innerW,descFz=6*sc,descPad=5*sc,rarFz=5*sc;
+  const tmp=document.createElement('canvas').getContext('2d');
+  tmp.font=`${titleFz}px 'Press Start 2P',monospace`;
+  let tLines=[],tL='';
+  for(const w of (card.title||'???').split(' ')){const t=tL+(tL?' ':'')+w;if(tmp.measureText(t).width>innerW&&tL){tLines.push(tL);tL=w;}else tL=t;}
+  if(tL)tLines.push(tL);
+  const titleH=Math.max(22*sc,tLines.length*(titleFz*1.6));
+  const imgSize=innerW;
+  tmp.font=`${descFz}px monospace`;
+  let dLines=[],dL='';
+  for(const w of (card.description||'Sin descripción').split(' ')){const t=dL+(dL?' ':'')+w;if(tmp.measureText(t).width>(innerW-2*descPad)&&dL){dLines.push(dL);dL=w;}else dL=t;}
+  if(dL)dLines.push(dL);
+  const descH=Math.max(36*sc,dLines.length*(descFz*1.7)+2*descPad);
+  const totalH=Math.ceil(bw+pad+titleH+5*sc+imgSize+5*sc+descH+5*sc+rarFz*2+pad+bw);
+  const cvs=document.createElement('canvas');cvs.width=W;cvs.height=totalH;
+  const ctx=cvs.getContext('2d');await document.fonts.ready;
+  const bgMap={comun:['#1a1a2e','#0d0d1a'],poco_comun:['#051828','#02101e'],rara:['#041a08','#021008'],epica:['#1a0530','#0d0118'],legendaria:['#1a0e00','#100900'],evento:['#2a0520','#1a030f']};
+  const [c1,c2]=bgMap[card.rarity]||bgMap.comun;
+  const gr=ctx.createLinearGradient(0,0,W*0.6,totalH);gr.addColorStop(0,c1);gr.addColorStop(1,c2);
+  rr(ctx,0,0,W,totalH,8*sc);ctx.fillStyle=gr;ctx.fill();
+  if(r.glow&&!leg){ctx.shadowColor=r.b;ctx.shadowBlur=10*sc;}
+  ctx.strokeStyle=leg?'#fbbf24':r.b;ctx.lineWidth=bw;
+  rr(ctx,bw/2,bw/2,W-bw,totalH-bw,7*sc);ctx.stroke();ctx.shadowBlur=0;
+  const cx=bw+pad;let cy=bw+pad;
+  const titleLH=titleH/Math.max(1,tLines.length);
+  ctx.fillStyle=r.tc;ctx.font=`${titleFz}px 'Press Start 2P',monospace`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  tLines.forEach((l,i)=>ctx.fillText(l,W/2,cy+titleLH*(i+0.5)));
+  cy+=titleH+5*sc;
+  rr(ctx,cx,cy,imgSz,imgSz,4*sc);ctx.fillStyle='#070712';ctx.fill();
+  ctx.strokeStyle=r.b+'33';ctx.lineWidth=sc;rr(ctx,cx,cy,imgSz,imgSz,4*sc);ctx.stroke();
+  if(card.image){
+    try{
+      let _fURL=card.image;
+      const _ghM=_fURL.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^?]+)/);
+      if(_ghM)_fURL='https://raw.githubusercontent.com/'+_ghM[1]+'/'+_ghM[2]+'/'+_ghM[3];
+      const _r=await fetch(_fURL);if(!_r.ok)throw new Error('HTTP '+_r.status);
+      const _b=await _r.blob();
+      const _d=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(_b);});
+      const _i=new Image();await new Promise((res,rej)=>{_i.onload=res;_i.onerror=rej;_i.src=_d;});
+      ctx.save();rr(ctx,cx,cy,imgSz,imgSz,4*sc);ctx.clip();ctx.drawImage(_i,cx,cy,imgSz,imgSz);ctx.restore();
+    }catch(e){console.error('PNG img:',e);}
+  }
+  cy+=imgSz+5*sc;
+  rr(ctx,cx,cy,innerW,descH,4*sc);ctx.fillStyle='#050510';ctx.fill();
+  ctx.fillStyle='#777777';ctx.font=`${descFz}px monospace`;ctx.textAlign='left';ctx.textBaseline='top';
+  dLines.forEach((l,i)=>ctx.fillText(l,cx+descPad,cy+descPad+i*(descFz*1.7)));
+  cy+=descH+5*sc;
+  ctx.fillStyle=r.tc;ctx.font=`${rarFz}px 'Press Start 2P',monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(r.lbl.toUpperCase(),W/2,cy+rarFz);
+  const a=document.createElement('a');
+  a.download=((card.title||'carta').replace(/[^\w\s]/g,'').trim().replace(/\s+/g,'_')||'carta')+'.png';
+  a.href=cvs.toDataURL('image/png');a.click();
+}
+
+function pageAdmin(){
+  const byR={};Object.keys(R).forEach(r=>{byR[r]=(S.db.cards||[]).filter(c=>c.rarity===r)});
+  const evts=(S.db.events||[]);
+  const now=Date.now();
+  const stats=[['Cartas',(S.db.cards||[]).length,'#ff69b4'],['Julia ⭐',S.db.julia.pts,'#ff69b4'],['Jesús ⭐',S.db.jesus.pts,'#a78bfa'],['Eventos',evts.length,'#fbbf24']];
+  const rarOpts=Object.entries(R).map(([k,v])=>'<option value="'+k+'" '+(S.adminRarity===k?'selected':'')+'>'+v.lbl+'</option>').join('');
+  let html='<div style="max-width:760px;margin:0 auto;padding-bottom:40px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">'
+    +'<div><div class="pf" style="font-size:10px;color:#ff69b4">🔧 Admin Panel</div></div>'
+    +'<button class="btn-o" onclick="S.user=null;render()">Salir</button></div>'
+    +'<div id="admin-msg" style="display:none;background:#091409;border:1px solid #4ade80;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-family:\'Press Start 2P\',monospace;font-size:7px;color:#4ade80"></div>'
+    +'<div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">'
+    +stats.map(([l,v,c])=>'<div style="background:#130820;border:1px solid #ff69b422;border-radius:10px;padding:10px 14px"><div class="pf" style="font-size:6px;color:#666;margin-bottom:4px">'+l+'</div><div class="pf" style="font-size:14px;color:'+c+'">'+v+'</div></div>').join('')
+    +'</div>';
+  // Card form
+  html+='<div style="background:#130820;border:1px solid #ff69b433;border-radius:12px;padding:16px;margin-bottom:18px">'
+    +'<div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:12px">'+(S.adminEditId?'✏️ Editar carta':'➕ Nueva carta')+'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<input id="af-title" class="inp" placeholder="Título*"><select id="af-rarity" class="inp" onchange="S.adminRarity=this.value">'+rarOpts+'</select>'
+    +'<input id="af-image" class="inp" placeholder="URL de imagen (opcional)"><textarea id="af-desc" class="inp" placeholder="Descripción" rows="3"></textarea>'
+    +'<div style="display:flex;gap:8px"><button class="btn" onclick="doAdminSave()" style="flex:1">'+(S.adminEditId?'Guardar cambios':'Añadir carta')+'</button>'+(S.adminEditId?'<button class="btn-o" onclick="S.adminEditId=null;S.adminRarity=\'comun\';render()">Cancelar</button>':'')+'</div></div></div>';
+  // Card list
+  Object.entries(byR).forEach(([rar,cards])=>{
+    if(!cards.length)return;
+    html+='<div style="margin-bottom:16px"><div class="pf" style="font-size:7px;color:'+R[rar].tc+';margin-bottom:8px">'+R[rar].lbl+' ('+cards.length+')</div>';
+    cards.forEach(c=>{
+      html+='<div style="background:#130820;border:1px solid '+R[c.rarity].b+'44;border-radius:10px;padding:9px 11px;display:flex;align-items:center;gap:9px;margin-bottom:5px">'
+        +(c.image?'<img src="'+esc(c.image)+'" style="width:34px;height:34px;object-fit:cover;border-radius:4px;flex-shrink:0" onerror="this.style.display=\'none\'">':'<div style="width:34px;height:34px;background:#07070f;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🃏</div>')
+        +'<div style="flex:1;min-width:0"><div class="pf" style="font-size:7px;color:#f0d6ff;margin-bottom:2px">'+esc(c.title)+'</div>'+(c.description?'<div style="font-size:11px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c.description)+'</div>':'')+'</div>'
+        +'<div style="display:flex;gap:5px;flex-shrink:0"><button onclick="doAdminEdit(\''+c.id+'\')" style="background:none;border:1px solid #4ade8033;border-radius:6px;color:#4ade80;cursor:pointer;padding:4px 7px;font-size:12px">✏️</button><button onclick="doAdminDelete(\''+c.id+'\')" style="background:none;border:1px solid #f8717133;border-radius:6px;color:#f87171;cursor:pointer;padding:4px 7px;font-size:12px">🗑️</button></div></div>';
+    });
+    html+='</div>';
+  });
+  if(!(S.db.cards||[]).length)html+='<div style="text-align:center;padding:28px 0"><div style="font-size:36px;margin-bottom:8px">🃏</div><div class="pf" style="font-size:8px;color:#555">No hay cartas — añade la primera arriba</div></div>';
+  // Rank icons
+  const snds=S.db.sounds||{};
+  let rankRows='';
+  RANK_DEFS.forEach(([k,l])=>{rankRows+='<div style="margin-bottom:10px"><div class="pf" style="font-size:6px;color:#60a5fa;margin-bottom:4px">'+l+'</div><div style="display:flex;gap:6px;align-items:center"><input class="inp" id="snd-'+k+'" style="font-size:11px" placeholder="URL imagen" value="'+esc(snds[k]||'')+'">'+(snds[k]?'<img src="'+esc(snds[k])+'" style="width:32px;height:32px;object-fit:contain;border-radius:4px;flex-shrink:0">':'')+'</div></div>';});
+  html+='<div style="background:#130820;border:1px solid #60a5fa33;border-radius:12px;padding:16px;margin-bottom:18px"><div class="pf" style="font-size:8px;color:#60a5fa;margin-bottom:4px">✨ Iconos de Rango</div>'+rankRows+'<button class="btn" onclick="doSaveSounds()" style="width:100%;margin-top:4px;background:linear-gradient(135deg,#1d4ed8,#3b82f6)">Guardar iconos</button></div>';
+  // Sounds
+  let soundRows='';
+  SND_DEFS.forEach(([k,l])=>{soundRows+='<div style="margin-bottom:10px"><div class="pf" style="font-size:6px;color:#c084fc;margin-bottom:4px">'+l+'</div><div style="display:flex;gap:6px"><input class="inp" id="snd-'+k+'" style="font-size:11px" placeholder="https://... (.mp3)" value="'+esc(snds[k]||'')+'" ><button onclick="testSound(\''+k+'\')" style="flex-shrink:0;background:none;border:1px solid #a78bfa44;border-radius:6px;color:#a78bfa;cursor:pointer;padding:4px 10px;font-size:14px">▶</button></div></div>';});
+  html+='<div style="background:#130820;border:1px solid #a78bfa33;border-radius:12px;padding:16px;margin-bottom:18px"><div class="pf" style="font-size:8px;color:#a78bfa;margin-bottom:4px">🔊 Sonidos</div>'+soundRows+'<button class="btn" onclick="doSaveSounds()" style="width:100%;background:linear-gradient(135deg,#7c3aed,#a78bfa)">Guardar sonidos</button></div>';
+  // Export/Import
+  html+='<div style="margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px"><button class="btn-g" onclick="doExport()">📦 Exportar backup</button><button class="btn-o" onclick="S.showImport=!S.showImport;render()">📥 Importar backup</button></div>';
+  if(S.showImport){html+='<div style="margin-bottom:18px;background:#130820;border:1px solid #4ade8033;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px"><div class="pf" style="font-size:7px;color:#4ade80">Pega el backup JSON:</div><textarea id="import-ta" class="inp" rows="5"></textarea><div style="display:flex;gap:8px"><button class="btn-g" onclick="doImport()">Importar</button><button class="btn-o" onclick="S.showImport=false;render()">Cancelar</button></div></div>';}
+  // Events admin
+  const _acEvts=S.db.events||[];
+  html+='<div style="background:#130820;border:2px solid #ff69b433;border-radius:12px;padding:16px;margin-bottom:18px">'
+    +'<div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:12px">'+(_adminEvtEditId?'✏️ Editar Evento':'🎪 Crear Evento')+'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">'
+    +'<input id="ae-title" class="inp" placeholder="Título del evento*" value="'+esc(_adminEvt.title||'')+'">'
+    +'<input id="ae-image" class="inp" placeholder="URL imagen de portada (opcional)" value="'+esc(_adminEvt.image||'')+'">'
+    +'<textarea id="ae-desc" class="inp" placeholder="Descripción" rows="2">'+esc(_adminEvt.desc||'')+'</textarea></div>'
+    +'<div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px">📋 Tasks de progreso</div>';
+  let evtTasksHTML='';
+  _adminEvtTasks.forEach(function(t){evtTasksHTML+='<div style="display:flex;align-items:center;gap:8px;background:#07070f;border-radius:8px;padding:8px 10px;margin-bottom:6px"><div style="flex:1"><div class="pf" style="font-size:6px;color:#f0d6ff;margin-bottom:2px">'+esc(t.title)+'</div><div class="pf" style="font-size:5px;color:#888">Obj: '+t.target+' · ⭐'+t.pts+' · +'+t.xp+'XP</div></div><button onclick="doRemoveEventTask(\''+t.id+'\')" style="background:none;border:1px solid #f8717133;border-radius:6px;color:#f87171;cursor:pointer;padding:3px 8px;font-size:11px">✕</button></div>';});
+  if(_adminEvtTasks.length>0){html+=evtTasksHTML;}
+  html+='<div style="background:#07070f;border:1px solid #ff69b422;border-radius:10px;padding:10px;margin-bottom:10px">'
+    +'<div class="pf" style="font-size:6px;color:#888;margin-bottom:8px">Nueva task:</div>'
+    +'<div style="display:flex;flex-direction:column;gap:7px">'
+    +'<input id="aet-title" class="inp" placeholder="Nombre de la task*" style="font-size:12px">'
+    +'<div style="display:flex;gap:7px">'
+    +'<input id="aet-target" class="inp" type="number" placeholder="Objetivo" value="10" min="1" style="font-size:12px">'
+    +'<input id="aet-pts" class="inp" type="number" placeholder="Puntos" value="10" min="0" style="font-size:12px">'
+    +'<input id="aet-xp" class="inp" type="number" placeholder="XP" value="5" min="0" style="font-size:12px"></div>'
+    +'<button class="btn-o" onclick="doAddEventTask()">+ Añadir task</button></div></div>'
+    +'<div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px">🎁 Carta recompensa</div>'
+    +'<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px">'
+    +'<input id="ae-rtitle" class="inp" placeholder="Título de la carta*" value="'+esc(_adminEvt.rewardTitle||'')+'">'
+    +'<input id="ae-rimage" class="inp" placeholder="URL imagen de la carta" value="'+esc(_adminEvt.rewardImage||'')+'">'
+    +'<textarea id="ae-rdesc" class="inp" placeholder="Descripción de la carta" rows="2">'+esc(_adminEvt.rewardDesc||'')+'</textarea></div>'
+    +'<div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px">📅 Fecha y hora de fin (hora canaria)</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:12px">'
+    +'<input id="ae-enddate" class="inp" type="date" style="font-size:13px;flex:1" value="'+(_adminEvt.endDateStr||'')+'">'
+    +'<input id="ae-endtime" class="inp" type="time" value="'+(_adminEvt.endTimeStr||'23:59')+'" style="font-size:13px;width:100px"></div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button class="btn" onclick="doCreateEvent()" style="flex:1;background:linear-gradient(135deg,#ff69b4,#f43f5e)">'+(_adminEvtEditId?'💾 Guardar cambios':'🎪 Crear Evento')+'</button>'
+    +(_adminEvtEditId?'<button class="btn-o" onclick="doCancelEditEvent()">Cancelar</button>':'')
+    +'</div></div>';
+  if(_acEvts.length>0){
+    html+='<div style="background:#130820;border:1px solid #ff69b422;border-radius:12px;padding:16px;margin-bottom:18px"><div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:12px">📋 Eventos ('+_acEvts.length+')</div>';
+    _acEvts.forEach(function(e){
+      const _act=e.endDate>now;const _dd=Math.floor(Math.max(0,e.endDate-now)/86400000);
+      html+='<div style="display:flex;align-items:center;gap:10px;background:#07070f;border-radius:10px;padding:10px;margin-bottom:6px">'
+        +'<div style="flex:1"><div class="pf" style="font-size:7px;color:#f0d6ff;margin-bottom:2px">'+esc(e.title)+'</div>'
+        +'<div class="pf" style="font-size:5px;color:'+(_act?'#4ade80':'#f87171')+';">'+(_act?'Activo · '+_dd+'d restantes':'Expirado')+'</div></div>'
+        +'<button onclick="doEditEvent(\''+e.id+'\')" style="background:none;border:1px solid #4ade8033;border-radius:6px;color:#4ade80;cursor:pointer;padding:4px 8px;font-size:12px">✏️</button>'
+        +'<button onclick="doDeleteEvent(\''+e.id+'\')" style="background:none;border:1px solid #f8717133;border-radius:6px;color:#f87171;cursor:pointer;padding:4px 8px;font-size:12px">🗑️</button></div>';
+    });
+    html+='</div>';
+  }
+  // Achievements admin
+  const _achs2=S.db.achievements||[];
+  const _achCL={tasks:'✅ Tasks',coleccionismo:'🃏 Coleccionismo',intercambios:'🔄 Intercambios',toques:'👆 Toques',eventos:'🎪 Eventos',rango:'⭐ Rango'};
+  html+='<div style="background:#130820;border:2px solid #fbbf2433;border-radius:12px;padding:16px;margin-bottom:18px">'
+    +'<div class="pf" style="font-size:8px;color:#fbbf24;margin-bottom:12px">'+(_adminAchEditId?'✏️ Editar Logro':'🏆 Nuevo Logro')+'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:9px">'
+    +'<input id="aa-title" class="inp" placeholder="Título del logro*" value="'+esc(_adminAch.title||'')+'">'
+    +'<input id="aa-image" class="inp" placeholder="URL imagen (opcional)" value="'+esc(_adminAch.image||'')+'">'
+    +'<textarea id="aa-desc" class="inp" placeholder="Descripción" rows="2">'+esc(_adminAch.description||'')+'</textarea>'
+    +'<div style="display:flex;gap:8px">'
+    +'<select id="aa-cat" class="inp">'+['tasks','coleccionismo','intercambios','toques','eventos','rango'].map(c=>'<option value="'+c+'"'+(_adminAch.category===c?' selected':'')+'>'+_achCL[c]+'</option>').join('')+'</select>'
+    +'<input id="aa-req" class="inp" type="number" min="1" placeholder="Cantidad" value="'+(_adminAch.required||1)+'" style="width:100px"></div>'
+    +'<div style="display:flex;gap:8px;align-items:center"><span class="pf" style="font-size:6px;color:#888">Marco:</span>'
+    +'<input id="aa-color" class="inp" type="color" value="'+(_adminAch.color==='multicolor'?'#fbbf24':(_adminAch.color||'#fbbf24'))+'" style="width:48px;height:36px;padding:2px;cursor:pointer">'
+    +'<button onclick="doSetMulticolorAch()" style="background:none;border:1px solid #ff69b444;border-radius:6px;color:#ff69b4;cursor:pointer;padding:6px 10px;font-family:\'Press Start 2P\',monospace;font-size:6px">'+(_adminAch.color==='multicolor'?'✓ ':'')+'Multicolor</button>'
+    +'<button onclick="doToggleGlowAch()" style="background:none;border:1px solid '+(_adminAch.glow?'#c084fc':'#c084fc44')+';border-radius:6px;color:'+(_adminAch.glow?'#c084fc':'#888')+';cursor:pointer;padding:6px 10px;font-family:\'Press Start 2P\',monospace;font-size:6px">'+(_adminAch.glow?'✓ ':'')+'Neón</button></div>'
+    +'<div style="display:flex;gap:8px"><button class="btn" onclick="doSaveAchievement()" style="flex:1;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1a0a00">'+(_adminAchEditId?'💾 Guardar':'🏆 Añadir Logro')+'</button>'
+    +(_adminAchEditId?'<button class="btn-o" onclick="doCancelAch()">Cancelar</button>':'')+'</div></div></div>';
+  if(_achs2.length>0){
+    html+='<div style="background:#130820;border:1px solid #fbbf2422;border-radius:12px;padding:16px;margin-bottom:18px"><div class="pf" style="font-size:8px;color:#fbbf24;margin-bottom:12px">📋 Logros ('+_achs2.length+')</div>';
+    ['tasks','coleccionismo','intercambios','toques','eventos','rango'].forEach(function(cat){
+      const catA=_achs2.filter(function(a){return a.category===cat;}).sort(function(a,b){return a.required-b.required;});
+      if(!catA.length)return;
+      html+='<div class="pf" style="font-size:6px;color:#888;margin:8px 0 5px">'+_achCL[cat]+'</div>';
+      catA.forEach(function(a){
+        html+='<div style="display:flex;align-items:center;gap:8px;background:#07070f;border-radius:8px;padding:8px 10px;margin-bottom:5px">'
+          +'<div style="width:28px;height:28px;border-radius:50%;border:'+(a.color==='multicolor'?'2px solid #ff69b4':'2px solid '+(a.color||'#fbbf24'))+';flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center">'
+          +(a.image?'<img src="'+esc(a.image)+'" style="width:100%;height:100%;object-fit:cover">':'<span style="font-size:14px">🏆</span>')+'</div>'
+          +'<div style="flex:1"><div class="pf" style="font-size:6px;color:#f0d6ff;margin-bottom:1px">'+esc(a.title)+'</div><div class="pf" style="font-size:5px;color:#666">'+_achCL[a.category]+' · '+a.required+'</div></div>'
+          +'<button onclick="doEditAchievement(\''+a.id+'\')" style="background:none;border:1px solid #4ade8033;border-radius:5px;color:#4ade80;cursor:pointer;padding:3px 7px;font-size:11px">✏️</button>'
+          +'<button onclick="doDeleteAchievement(\''+a.id+'\')" style="background:none;border:1px solid #f8717133;border-radius:5px;color:#f87171;cursor:pointer;padding:3px 7px;font-size:11px">🗑️</button></div>';
+      });
+    });
+    html+='</div>';
+  }
+  // Album admin
+  const _alb=S.db.album||{};
+  const _albPages=_alb.pages||[];
+  html+='<div style="background:#130820;border:2px solid #60a5fa33;border-radius:12px;padding:16px;margin-bottom:18px">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+    +'<div class="pf" style="font-size:8px;color:#60a5fa">📖 Álbum</div>'
+    +'<button onclick="doToggleAlbumVisible()" style="background:none;border:1px solid '+(_alb.visible?'#4ade80':'#f8717133')+';border-radius:6px;color:'+(_alb.visible?'#4ade80':'#f87171')+';cursor:pointer;padding:4px 10px;font-family:\'Press Start 2P\',monospace;font-size:6px">'+(_alb.visible?'✓ Visible':'Oculto')+'</button>'
+    +'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">'
+    +'<input id="alb-cover" class="inp" placeholder="URL imagen portada" value="'+esc((_alb.cover||{}).image||'')+'">'
+    +'<input id="alb-back" class="inp" placeholder="URL imagen contraportada" value="'+esc((_alb.back||{}).image||'')+'">'
+    +'<input id="alb-snd-flip" class="inp" placeholder="URL sonido pasar página" value="'+esc((_alb.sounds||{}).pageFlip||'')+'">'
+    +'<input id="alb-snd-stick" class="inp" placeholder="URL sonido pegar carta" value="'+esc((_alb.sounds||{}).cardStick||'')+'">'
+    +'<button class="btn" onclick="doSaveAlbumSettings()" style="background:linear-gradient(135deg,#3b82f6,#60a5fa)">💾 Guardar configuración</button>'
+    +'</div>'
+    +'<div class="pf" style="font-size:7px;color:#60a5fa;margin-bottom:8px">➕ Nueva página</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:12px">'
+    +'<input id="alb-new-page-img" class="inp" placeholder="URL imagen de la página*" style="flex:1">'
+    +'<button class="btn-o" onclick="doAddAlbumPage()" style="flex-shrink:0;border-color:#60a5fa;color:#60a5fa">Añadir</button></div>';
+  if(_albPages.length>0){
+    html+='<div class="pf" style="font-size:7px;color:#60a5fa;margin:0 0 8px">📄 Páginas ('+_albPages.length+')</div>';
+    _albPages.forEach(function(page,idx){
+      const slots=(page.slots||[]).length;
+      const isEditing=S.editSlotPage===page.id;
+      html+='<div style="background:#07070f;border-radius:8px;margin-bottom:6px;overflow:hidden">'
+        +'<div style="display:flex;align-items:center;gap:8px;padding:8px 10px">'
+        +(page.image?'<img src="'+esc(page.image)+'" style="width:32px;height:44px;object-fit:cover;border-radius:3px;flex-shrink:0">':'')
+        +'<div style="flex:1"><div class="pf" style="font-size:6px;color:#f0d6ff">Pág. '+(idx+1)+'</div><div class="pf" style="font-size:5px;color:#666;margin-top:2px">'+slots+' hueco'+(slots!==1?'s':'')+'</div></div>'
+        +'<button onclick="doMoveAlbumPage(\''+page.id+'\',\'up\')" '+(idx===0?'disabled':'')+' style="background:none;border:1px solid #60a5fa33;border-radius:4px;color:#60a5fa;cursor:pointer;padding:2px 6px;font-size:11px">↑</button>'
+        +'<button onclick="doMoveAlbumPage(\''+page.id+'\',\'down\')" '+(idx===_albPages.length-1?'disabled':'')+' style="background:none;border:1px solid #60a5fa33;border-radius:4px;color:#60a5fa;cursor:pointer;padding:2px 6px;font-size:11px">↓</button>'
+        +'<button onclick="doEditAlbumPage(\''+page.id+'\')" style="background:none;border:1px solid #4ade8033;border-radius:4px;color:#4ade80;cursor:pointer;padding:2px 6px;font-size:11px">'+(isEditing?'✓':'✏️')+'</button>'
+        +'<button onclick="doDeleteAlbumPage(\''+page.id+'\')" style="background:none;border:1px solid #f8717133;border-radius:4px;color:#f87171;cursor:pointer;padding:2px 6px;font-size:11px">🗑️</button>'
+        +'</div>';
+      if(isEditing){
+        html+='<div style="padding:10px;border-top:1px solid #ffffff11">'
+          +'<div class="pf" style="font-size:6px;color:#888;margin-bottom:8px">Toca en la imagen para añadir un hueco · Arrastra para reposicionar</div>'
+          +'<div id="alb-ed-'+page.id+'" onclick="doAddSlotClick(\''+page.id+'\',event)" style="position:relative;width:100%;cursor:crosshair;border-radius:6px;overflow:hidden;border:1px solid #60a5fa33">';
+        if(page.image)html+='<img src="'+esc(page.image)+'" style="width:100%;display:block;pointer-events:none">';
+        else html+='<div style="background:#07070f;height:180px;display:flex;align-items:center;justify-content:center"><span class="pf" style="font-size:7px;color:#555">Sin imagen</span></div>';
+        (page.slots||[]).forEach(function(slot,si){
+          html+='<div id="slotadm-'+slot.id+'" onmousedown="startSlotDrag(\''+page.id+'\',\''+slot.id+'\',event)" ontouchstart="startSlotDrag(\''+page.id+'\',\''+slot.id+'\',event)" onclick="event.stopPropagation()" style="position:absolute;left:'+slot.x+'%;top:'+slot.y+'%;width:'+slot.w+'%;height:'+slot.h+'%;border:2px solid #4ade80;background:#4ade8022;border-radius:3px;box-sizing:border-box;cursor:grab;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:2px">'
+            +'<span style="background:#4ade80;color:#0d0618;font-size:8px;border-radius:2px;padding:0 3px;font-weight:bold;line-height:13px;align-self:flex-start">'+(si+1)+'</span>'
+            +'<button onclick="doDeleteSlot(\''+page.id+'\',\''+slot.id+'\')" style="background:#f87171;border:none;border-radius:2px;color:white;font-size:9px;cursor:pointer;padding:0 3px;line-height:13px;align-self:flex-end">×</button>'
+            +'</div>';
+        });
+        html+='</div>';
+        if((page.slots||[]).length>0){
+          html+='<div class="pf" style="font-size:6px;color:#60a5fa;margin:10px 0 6px">🃏 Enlazar huecos a cartas</div>';
+          (page.slots||[]).forEach(function(slot,si){
+            html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'
+              +'<span style="background:#4ade80;color:#0d0618;font-size:8px;border-radius:3px;padding:2px 5px;font-weight:bold;flex-shrink:0">'+(si+1)+'</span>'
+              +'<select onchange="doLinkSlotCard(\''+page.id+'\',\''+slot.id+'\',this.value)" style="flex:1;background:#07070f;border:1px solid #333;border-radius:6px;color:#f0d6ff;padding:5px;font-size:11px">'
+              +'<option value="">— Sin carta —</option>';
+            (S.db.cards||[]).forEach(function(c){
+              html+='<option value="'+c.id+'"'+(slot.cardId===c.id?' selected':'')+'>'+esc(c.title)+' ('+c.rarity+')</option>';
+            });
+            html+='</select></div>';
+          });
+        }
+        html+='</div>';
+      }
+      html+='</div>';
+    });
+  }
+  html+='</div>';
+  // Danger zone
+  html+='<div style="margin-top:24px;padding:14px;background:#1e0a0a;border:1px solid #f8717133;border-radius:10px"><div class="pf" style="font-size:8px;color:#f87171;margin-bottom:10px">⚠️ Zona peligrosa</div><button class="btn-d" onclick="doReset()">Reset completo (conserva cartas y sonidos)</button></div></div>';
+  return html;
+}
+
+
+function miniCardHTML(card){
+  const r=R[card.rarity]||R.comun;
+  const leg=card.rarity==='legendaria';
+  const bgMap={comun:'#1a1a2e',poco_comun:'#051828',rara:'#041a08',epica:'#1a0530',legendaria:'#1a0e00',evento:'#2a0520'};
+  const bg=bgMap[card.rarity]||'#130820';
+  let h='<div style="width:100%;height:100%;display:flex;flex-direction:column;background:'+bg+';border:2px solid '+(leg?'#ff69b4':r.b)+';border-radius:3px;overflow:hidden;box-sizing:border-box">';
+  h+='<div class="pf" style="font-size:4.5px;color:'+r.tc+';text-align:center;padding:2px 3px;line-height:1.4;background:#00000044;flex-shrink:0">'+esc(card.title||'')+'</div>';
+  h+='<div style="flex:1;overflow:hidden;min-height:0">';
+  if(card.image)h+='<img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover">';
+  else h+='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px">🎴</div>';
+  h+='</div>';
+  h+='<div class="pf" style="font-size:4px;color:'+r.tc+';text-align:center;padding:2px;background:#00000066;flex-shrink:0">'+r.lbl.toUpperCase()+'</div>';
+  h+='</div>';
+  return h;
 }
 
 function render(){
