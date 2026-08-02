@@ -1105,68 +1105,85 @@ async function downloadCardAsPNG(card){
   if(!card)return;
   const r=R[card.rarity]||R.comun;
   const leg=card.rarity==='legendaria';
-  const sc=3;
-  const W=148*sc,pad=9*sc,bw=3*sc;
-  const titleFontSz=7*sc,descFontSz=5*sc,rarFontSz=5*sc;
-  const lineH=titleFontSz*1.7,descLH=descFontSz*1.6;
+  const sc=3,bw=3*sc,pad=9*sc;
+  const W=148*sc;
   await document.fonts.ready;
-  const cvs=document.createElement('canvas');cvs.width=W;cvs.height=10;
-  let ctx=cvs.getContext('2d');
-  ctx.font=`${titleFontSz}px 'Press Start 2P',monospace`;
-  const titleWords=(card.title||'???').split(' ');
-  const maxW=W-2*pad;let tl=[],tLine='';
-  for(const w of titleWords){const t=tLine+(tLine?' ':'')+w;if(ctx.measureText(t).width>maxW&&tLine){tl.push(tLine);tLine=w;}else tLine=t;}
-  if(tLine)tl.push(tLine);
-  const titleH=Math.max(1,tl.length)*lineH;
-  const imgSize=W-2*pad;
-  ctx.font=`${descFontSz}px monospace`;
-  const dWords=(card.description||'Sin descripción').split(' ');let dLines=[],dL='';
-  for(const w of dWords){const t=dL+(dL?' ':'')+w;if(ctx.measureText(t).width>maxW&&dL){dLines.push(dL);dL=w;}else dL=t;}
+  function rr(ctx,x,y,w,h,rv){
+    ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(x,y,w,h,rv);
+    else{ctx.moveTo(x+rv,y);ctx.lineTo(x+w-rv,y);ctx.quadraticCurveTo(x+w,y,x+w,y+rv);ctx.lineTo(x+w,y+h-rv);ctx.quadraticCurveTo(x+w,y+h,x+w-rv,y+h);ctx.lineTo(x+rv,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-rv);ctx.lineTo(x,y+rv);ctx.quadraticCurveTo(x,y,x+rv,y);}
+    ctx.closePath();
+  }
+  const innerW=W-2*pad-2*bw;
+  const titleFz=7*sc,imgSz=innerW,descFz=6*sc,descPad=5*sc,rarFz=5*sc;
+  // Measure title
+  const tmp=document.createElement('canvas').getContext('2d');
+  tmp.font=`${titleFz}px 'Press Start 2P',monospace`;
+  let tLines=[],tL='';
+  for(const w of (card.title||'???').split(' ')){const t=tL+(tL?' ':'')+w;if(tmp.measureText(t).width>innerW&&tL){tLines.push(tL);tL=w;}else tL=t;}
+  if(tL)tLines.push(tL);
+  const titleH=Math.max(22*sc,tLines.length*(titleFz*1.6));
+  // Measure description
+  tmp.font=`${descFz}px monospace`;
+  let dLines=[],dL='';
+  for(const w of (card.description||'Sin descripción').split(' ')){const t=dL+(dL?' ':'')+w;if(tmp.measureText(t).width>(innerW-2*descPad)&&dL){dLines.push(dL);dL=w;}else dL=t;}
   if(dL)dLines.push(dL);
-  const descH=Math.max(3,dLines.length)*descLH;
-  const H=pad+titleH+6*sc+imgSize+8*sc+descH+10*sc+rarFontSz*2+pad;
-  cvs.width=W;cvs.height=Math.ceil(H);ctx=cvs.getContext('2d');
+  const descH=Math.max(36*sc,dLines.length*(descFz*1.7)+2*descPad);
+  const totalH=Math.ceil(bw+pad+titleH+5*sc+imgSz+5*sc+descH+5*sc+rarFz*2+pad+bw);
+  // Create canvas
+  const cvs=document.createElement('canvas');cvs.width=W;cvs.height=totalH;
+  const ctx=cvs.getContext('2d');
   await document.fonts.ready;
-  function rr(x,y,w,h,rv){ctx.beginPath();if(ctx.roundRect){ctx.roundRect(x,y,w,h,rv);}else{ctx.moveTo(x+rv,y);ctx.lineTo(x+w-rv,y);ctx.quadraticCurveTo(x+w,y,x+w,y+rv);ctx.lineTo(x+w,y+h-rv);ctx.quadraticCurveTo(x+w,y+h,x+w-rv,y+h);ctx.lineTo(x+rv,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-rv);ctx.lineTo(x,y+rv);ctx.quadraticCurveTo(x,y,x+rv,y);}ctx.closePath();}
+  // Background gradient
   const bgMap={comun:['#1a1a2e','#0d0d1a'],poco_comun:['#051828','#02101e'],rara:['#041a08','#021008'],epica:['#1a0530','#0d0118'],legendaria:['#1a0e00','#100900'],evento:['#2a0520','#1a030f']};
   const [c1,c2]=bgMap[card.rarity]||bgMap.comun;
-  const gr=ctx.createLinearGradient(0,0,W*0.6,H);gr.addColorStop(0,c1);gr.addColorStop(1,c2);
-  rr(0,0,W,H,8*sc);ctx.fillStyle=gr;ctx.fill();
-  if(r.glow){ctx.shadowColor=r.b;ctx.shadowBlur=12*sc;}
+  const gr=ctx.createLinearGradient(0,0,W*0.6,totalH);
+  gr.addColorStop(0,c1);gr.addColorStop(1,c2);
+  rr(ctx,0,0,W,totalH,8*sc);ctx.fillStyle=gr;ctx.fill();
+  // Border + glow
+  if(r.glow&&!leg){ctx.shadowColor=r.b;ctx.shadowBlur=10*sc;}
   ctx.strokeStyle=leg?'#ff69b4':r.b;ctx.lineWidth=bw;
-  rr(bw/2,bw/2,W-bw,H-bw,7*sc);ctx.stroke();ctx.shadowBlur=0;
-  ctx.fillStyle=r.tc;ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font=`${titleFontSz}px 'Press Start 2P',monospace`;
-  tl.forEach((l,i)=>ctx.fillText(l,W/2,pad+(i+0.5)*lineH));
-  const imgTop=pad+titleH+6*sc;
-  rr(pad,imgTop,imgSize,imgSize,4*sc);ctx.fillStyle='#070712';ctx.fill();
-  ctx.strokeStyle=r.b+'55';ctx.lineWidth=sc;rr(pad,imgTop,imgSize,imgSize,4*sc);ctx.stroke();
+  rr(ctx,bw/2,bw/2,W-bw,totalH-bw,7*sc);ctx.stroke();ctx.shadowBlur=0;
+  // Layout positions
+  const cx=bw+pad;let cy=bw+pad;
+  // Title (Press Start 2P, rarity color, centered)
+  const titleLH=titleH/Math.max(1,tLines.length);
+  ctx.fillStyle=r.tc;ctx.font=`${titleFz}px 'Press Start 2P',monospace`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  tLines.forEach((l,i)=>ctx.fillText(l,W/2,cy+titleLH*(i+0.5)));
+  cy+=titleH+5*sc;
+  // Image box (dark bg + rarity border)
+  rr(ctx,cx,cy,imgSz,imgSz,4*sc);ctx.fillStyle='#070712';ctx.fill();
+  ctx.strokeStyle=r.b+'33';ctx.lineWidth=sc;
+  rr(ctx,cx,cy,imgSz,imgSz,4*sc);ctx.stroke();
   if(card.image){
     try{
       let _fURL=card.image;
       const _ghM=_fURL.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^?]+)/);
       if(_ghM)_fURL='https://raw.githubusercontent.com/'+_ghM[1]+'/'+_ghM[2]+'/'+_ghM[3];
-      const _resp=await fetch(_fURL);
-      if(!_resp.ok)throw new Error('HTTP '+_resp.status);
-      const _blob=await _resp.blob();
-      const _b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(_blob);});
-      const _img=new Image();
-      await new Promise((res,rej)=>{_img.onload=res;_img.onerror=rej;_img.src=_b64;});
-      ctx.save();rr(pad,imgTop,imgSize,imgSize,4*sc);ctx.clip();
-      ctx.drawImage(_img,pad,imgTop,imgSize,imgSize);
-      ctx.restore();
-    }catch(e){console.error('PNG image error:',e);}
+      const _r=await fetch(_fURL);if(!_r.ok)throw new Error('HTTP '+_r.status);
+      const _b=await _r.blob();
+      const _d=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(_b);});
+      const _i=new Image();await new Promise((res,rej)=>{_i.onload=res;_i.onerror=rej;_i.src=_d;});
+      ctx.save();rr(ctx,cx,cy,imgSz,imgSz,4*sc);ctx.clip();ctx.drawImage(_i,cx,cy,imgSz,imgSz);ctx.restore();
+    }catch(e){console.error('PNG img:',e);}
   }
-  const descTop=imgTop+imgSize+8*sc;
-  ctx.fillStyle='#888888';ctx.font=`${descFontSz}px monospace`;ctx.textAlign='left';ctx.textBaseline='top';
-  dLines.forEach((l,i)=>ctx.fillText(l,pad,descTop+i*descLH));
-  ctx.fillStyle=r.tc;ctx.font=`${rarFontSz}px 'Press Start 2P',monospace`;ctx.textAlign='center';ctx.textBaseline='bottom';
-  ctx.fillText(r.lbl.toUpperCase(),W/2,H-pad/2);
+  cy+=imgSz+5*sc;
+  // Description box (dark bg, monospace, gray text)
+  rr(ctx,cx,cy,innerW,descH,4*sc);ctx.fillStyle='#050510';ctx.fill();
+  ctx.fillStyle='#777777';ctx.font=`${descFz}px monospace`;
+  ctx.textAlign='left';ctx.textBaseline='top';
+  dLines.forEach((l,i)=>ctx.fillText(l,cx+descPad,cy+descPad+i*(descFz*1.7)));
+  cy+=descH+5*sc;
+  // Rarity label
+  ctx.fillStyle=r.tc;ctx.font=`${rarFz}px 'Press Start 2P',monospace`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(r.lbl.toUpperCase(),W/2,cy+rarFz);
+  // Download
   const a=document.createElement('a');
   a.download=((card.title||'carta').replace(/[^\w\s]/g,'').trim().replace(/\s+/g,'_')||'carta')+'.png';
   a.href=cvs.toDataURL('image/png');a.click();
 }
-
 
 function render(){
   const _bnavSc=document.querySelector('.bnav')?.scrollLeft||0;
