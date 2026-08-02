@@ -570,7 +570,7 @@ function pageIntercambios(){
   }
   const myDupsHTML=myDups.length===0?'<div class="pf" style="font-size:6px;color:#555">No tienes cartas repetidas aún</div>'
     :'<div style="display:flex;flex-wrap:wrap;gap:7px;max-height:200px;overflow-y:auto;padding:4px 0">'+myDups.map(c=>'<div onclick="S.myCard=\''+c.id+'\';render()" style="border:2px solid '+(S.myCard===c.id?'#ff69b4':'transparent')+';border-radius:9px;cursor:pointer;padding:2px">'+cardHTML(c,myC[c.id]||0,true)+'</div>').join('')+'</div>';
-  const thHasHTML=thHas.length===0?'<div class="pf" style="font-size:6px;color:#555">'+oName+' no tiene cartas aún</div>'
+  const thHasHTML=thHas.length===0?'<div class="pf" style="font-size:6px;color:#555">'+oName+' no tiene cartas repetidas aún</div>'
     :'<div style="display:flex;flex-wrap:wrap;gap:7px;max-height:200px;overflow-y:auto;padding:4px 0">'+thHas.map(c=>'<div onclick="S.thCard=\''+c.id+'\';render()" style="border:2px solid '+(S.thCard===c.id?'#4ade80':'transparent')+';border-radius:9px;cursor:pointer;padding:2px">'+cardHTML(c,otC[c.id]||0,true)+'</div>').join('')+'</div>';
   const myCardObj=S.myCard?S.db.cards.find(c=>c.id===S.myCard):null;
   const thCardObj=S.thCard?S.db.cards.find(c=>c.id===S.thCard):null;
