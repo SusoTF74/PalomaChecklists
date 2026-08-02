@@ -835,12 +835,12 @@ function pageMain(){
   const _xpInLv=_xp-xpToReachLevel(_lv),_xpNeed=xpForNextLevel(_lv);
   const _xpPct=Math.min(100,Math.round(_xpInLv/_xpNeed*100));
   const _rIcon=getRankIcon(_rank);
-  const _rankImg=_rIcon?'<img src="'+esc(_rIcon)+'" style="width:18px;height:18px;object-fit:contain;flex-shrink:0">'
-    :'<span style="font-size:14px;flex-shrink:0">'+getRankEmoji(_rank)+'</span>';
-  const _xpBar='<div style="display:flex;align-items:center;gap:4px">'+_rankImg
+  const _rankImg=_rIcon?'<img src="'+esc(_rIcon)+'" style="width:20px;height:20px;object-fit:contain;flex-shrink:0">'
+    :'<span style="font-size:16px;flex-shrink:0">'+getRankEmoji(_rank)+'</span>';
+  const _xpBar='<div style="display:flex;align-items:center;gap:5px">'+_rankImg
     +'<div><div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">'
-    +'<span class="pf" style="font-size:5px;color:#60a5fa">Nv.'+_lv+'</span>'
-    +'<span class="pf" style="font-size:4px;color:#93c5fd">'+_xpInLv+'/'+_xpNeed+'</span></div>'
+    +'<span class="pf" style="font-size:6px;color:#60a5fa">Nv.'+_lv+'</span>'
+    +'<span class="pf" style="font-size:5px;color:#93c5fd">'+_xpInLv+'/'+_xpNeed+'</span></div>'
     +'<div style="background:#1e1040;border-radius:10px;width:62px;height:5px;overflow:hidden">'
     +'<div style="width:'+_xpPct+'%;height:100%;background:linear-gradient(90deg,#3b82f6,#60a5fa);border-radius:10px;transition:width .4s"></div>'
     +'</div></div></div>';
@@ -858,11 +858,12 @@ function pageMain(){
   const navSide=NAV.map(n=>'<button class="ns '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:15px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
   const navBot=NAV.map(n=>'<button class="nm '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:24px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
   return '<div style="min-height:100vh"><header style="background:#0f0620;border-bottom:2px solid #ff69b422;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100">'
-    +'<div><div class="pf" style="font-size:10px;color:#ff69b4;line-height:1.9">\ud83d\udd4a\ufe0f Paloma</div><div class="pf" style="font-size:5px;color:#c084fc">Checklists</div></div>'
-    +'<div style="display:flex;align-items:center;gap:9px">'
-    +'<div style="background:#1a0a2e;border:1px solid #fbbf2444;border-radius:20px;padding:4px 11px;white-space:nowrap"><span class="pf" style="font-size:9px;color:#fbbf24">\u2b50 '+ud().pts+'</span></div>'
+    +'<div style="display:flex;align-items:center;gap:8px">'
     +'<span class="pf" style="font-size:7px;color:'+uInfo.c+'">'+uInfo.name+'</span>'
     +_xpBar
+    +'</div>'
+    +'<div style="display:flex;align-items:center;gap:8px">'
+    +'<div style="background:#1a0a2e;border:1px solid #fbbf2444;border-radius:20px;padding:4px 11px;white-space:nowrap"><span class="pf" style="font-size:9px;color:#fbbf24">\u2b50 '+ud().pts+'</span></div>'
     +muteBtn
     +'<button onclick="S.user=null;S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;if(bgAudio){bgAudio.pause();bgAudio=null;}render()" style="background:none;border:1px solid #ff69b433;border-radius:6px;color:#ff69b4;cursor:pointer;padding:4px 8px;font-size:13px">\u2715</button>'
     +'</div></header>'
