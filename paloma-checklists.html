@@ -829,8 +829,23 @@ function pageAlbum(){
 }
 
 function pageMain(){
+  const uInfo=USERS[S.user];
+  const hasBgMusic=!!(S.db.sounds||{}).bgMusic;
+  const _xp=ud().xp||0,_lv=getLevel(_xp),_rank=getRank(_lv);
+  const _xpInLv=_xp-xpToReachLevel(_lv),_xpNeed=xpForNextLevel(_lv);
+  const _xpPct=Math.min(100,Math.round(_xpInLv/_xpNeed*100));
+  const _rIcon=getRankIcon(_rank);
+  const _rankImg=_rIcon?'<img src="'+esc(_rIcon)+'" style="width:18px;height:18px;object-fit:contain;flex-shrink:0">'
+    :'<span style="font-size:14px;flex-shrink:0">'+getRankEmoji(_rank)+'</span>';
+  const _xpBar='<div style="display:flex;align-items:center;gap:4px">'+_rankImg
+    +'<div><div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">'
+    +'<span class="pf" style="font-size:5px;color:#60a5fa">Nv.'+_lv+'</span>'
+    +'<span class="pf" style="font-size:4px;color:#93c5fd">'+_xpInLv+'/'+_xpNeed+'</span></div>'
+    +'<div style="background:#1e1040;border-radius:10px;width:62px;height:5px;overflow:hidden">'
+    +'<div style="width:'+_xpPct+'%;height:100%;background:linear-gradient(90deg,#3b82f6,#60a5fa);border-radius:10px;transition:width .4s"></div>'
+    +'</div></div></div>';
+  const muteBtn=hasBgMusic?'<button id="mute-btn" onclick="toggleMute()" style="background:none;border:1px solid #a78bfa44;border-radius:6px;color:#a78bfa;cursor:pointer;padding:4px 8px;font-size:14px">'+(S.muted?'\ud83d\udd07':'\ud83d\udd0a')+'</button>':'';
   let pageContent='';
-  const nav=NAV.map(n=>'<button class="nm '+(S.page===n.id?'nm-a':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:18px">'+n.ic+'</span><span>'+n.lbl+'</span></button>').join('');
   if(S.page==='checklist')pageContent=pageChecklist();
   else if(S.page==='tienda')pageContent=pageTienda();
   else if(S.page==='coleccion')pageContent=pageColeccion();
@@ -840,16 +855,23 @@ function pageMain(){
   else if(S.page==='otro')pageContent=pageOtro();
   else if(S.page==='album')pageContent=pageAlbum();
   else pageContent=pageChecklist();
-  const muteBtn='<button onclick="S.muted=!S.muted;if(S.muted&&bgAudio){bgAudio.pause();}else if(!S.muted&&S.page===\'checklist\'){startBgMusic();}render()" style="background:none;border:none;cursor:pointer;font-size:16px;color:#888;padding:4px">'+(S.muted?'🔇':'🔊')+'</button>';
-  const uData=ud(),lv=getLevel(uData.xp||0),rank=getRank(lv),rankIcon=getRankIcon(rank);
-  const rankImg=rankIcon?'<img src="'+esc(rankIcon)+'" style="width:20px;height:20px;object-fit:contain">':'<span style="font-size:14px">'+getRankEmoji(rank)+'</span>';
-  const xpCur=(uData.xp||0)-xpToReachLevel(lv),xpNxt=xpToReachLevel(lv+1)-xpToReachLevel(lv),xpPct=Math.min(100,Math.round(xpCur/Math.max(1,xpNxt)*100));
-  const xpBar='<div style="display:flex;align-items:center;gap:5px"><div style="width:60px;height:5px;background:#1a0a2e;border-radius:3px;overflow:hidden"><div style="width:'+xpPct+'%;height:100%;background:linear-gradient(90deg,#60a5fa,#c084fc);border-radius:3px;transition:width .4s"></div></div><span class="pf" style="font-size:5px;color:#888">'+rank.charAt(0).toUpperCase()+rank.slice(1)+'</span></div>';
-  const hdr='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0d0618;border-bottom:1px solid #ff69b422;position:sticky;top:0;z-index:100">'
-    +'<div style="display:flex;align-items:center;gap:8px">'+rankImg+'<div><div class="pf" style="font-size:8px;color:#f0d6ff">'+USERS[S.user].name+'</div>'+xpBar+'</div></div>'
-    +'<div style="display:flex;align-items:center;gap:6px"><div style="background:#1a0a2e;border:1px solid #fbbf2444;border-radius:20px;padding:4px 11px;white-space:nowrap"><span class="pf" style="font-size:9px;color:#fbbf24">⭐ '+ud().pts+'</span></div>'+muteBtn+'<button onclick="S.user=null;S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;if(bgAudio){bgAudio.pause();bgAudio=null;}render()" style="background:none;border:1px solid #ff69b433;border-radius:6px;color:#ff69b4;cursor:pointer;padding:4px 9px;font-size:13px">✕</button></div></div>';
-  const bnav='<nav class="bnav" style="position:fixed;bottom:0;left:0;right:0;background:#0d0618;border-top:1px solid #ff69b422;display:flex;z-index:200;padding:0 4px">'+nav+'</nav>';
-  return hdr+'<div class="mpb" style="padding:16px">'+pageContent+'</div>'+bnav;
+  const navSide=NAV.map(n=>'<button class="ns '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:15px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
+  const navBot=NAV.map(n=>'<button class="nm '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:24px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
+  return '<div style="min-height:100vh"><header style="background:#0f0620;border-bottom:2px solid #ff69b422;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100">'
+    +'<div><div class="pf" style="font-size:10px;color:#ff69b4;line-height:1.9">\ud83d\udd4a\ufe0f Paloma</div><div class="pf" style="font-size:5px;color:#c084fc">Checklists</div></div>'
+    +'<div style="display:flex;align-items:center;gap:9px">'
+    +'<div style="background:#1a0a2e;border:1px solid #fbbf2444;border-radius:20px;padding:4px 11px;white-space:nowrap"><span class="pf" style="font-size:9px;color:#fbbf24">\u2b50 '+ud().pts+'</span></div>'
+    +'<span class="pf" style="font-size:7px;color:'+uInfo.c+'">'+uInfo.name+'</span>'
+    +_xpBar
+    +muteBtn
+    +'<button onclick="S.user=null;S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;if(bgAudio){bgAudio.pause();bgAudio=null;}render()" style="background:none;border:1px solid #ff69b433;border-radius:6px;color:#ff69b4;cursor:pointer;padding:4px 8px;font-size:13px">\u2715</button>'
+    +'</div></header>'
+    +'<div style="display:flex">'
+    +'<div class="snav" style="width:186px;background:#0c0618;border-right:1px solid #ff69b411;padding:12px 8px;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto;flex-shrink:0">'+navSide+'</div>'
+    +'<main style="flex:1;padding:14px;overflow-y:auto" class="mpb">'+pageContent+'</main>'
+    +'</div>'
+    +'<nav class="bnav" style="position:fixed;bottom:0;left:0;right:0;background:#0c0618;border-top:1px solid #ff69b422;z-index:100;padding:0 4px">'+navBot+'</nav>'
+    +'</div>';
 }
 
 // ─── EVENT FUNCTIONS ────────────────────────────────────────────────────────
