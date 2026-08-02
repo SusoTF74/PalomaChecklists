@@ -89,7 +89,7 @@ const SOBRES={
   raro:{lbl:'Sobre Raro',cost:200,n:4,icon:'💠',bc:'#38bdf8',gr:'linear-gradient(135deg,#0369a1,#38bdf8)',probs:{comun:20,poco_comun:30,rara:30,epica:15,legendaria:5}},
   mega:{lbl:'Megasobre ✨',cost:300,n:5,icon:'🌟',bc:'#fbbf24',gr:'linear-gradient(135deg,#92400e,#fbbf24)',probs:{comun:15,poco_comun:20,rara:25,epica:25,legendaria:15},epic:true}
 };
-const RANK_DEFS=[['rankBronze','🥉 Icono Bronce (nv. 1-24)'],['rankSilver','🥈 Icono Plata (nv. 25-49)'],['rankGold','🥇 Icono Oro (nv. 50-74)'],['rankPlatinum','💠 Icono Platino (nv. 75-99)'],['rankDiamond','💎 Icono Diamante (nv. 100+)']];
+const RANK_DEFS=[['rankBronze','🥉 Icono Bronce (nv. 1-24)'],['rankSilver','🥈 Icono Plata (nv. 25-49)'],['rankGold','🥇 Icono Oro (nv. 50-74)'],['rankPlatinum','💠 Icono Platino (nv. 75-99)'],['rankDiamond','💎 Icono Diamante (nv. 100+)'],['lockedAchImage','🔒 Imagen fondo logros bloqueados']];
 const SND_DEFS=[['bgMusic','🎵 Música de fondo (bucle)'],['addTask','✅ Añadir tarea'],['completeTask','✓ Completar tarea'],['requestTrade','📤 Enviar intercambio'],['acceptTrade','🤝 Aceptar intercambio'],['openPack','📦 Abrir sobre'],['comun','⬜ Revelar carta Común'],['poco_comun','💙 Revelar carta Poco Común'],['rara','💚 Revelar carta Rara'],['epica','💜 Revelar carta Épica'],['legendaria','⭐ Revelar carta Legendaria'],['toque','🔔 Recibir un toque'],['levelUp','🎵 Sonido Level Up'],['achievement','🏆 Desbloquear logro']];
 
 // ─── STATE ─────────────────────────────────────────────────────────────────
@@ -1013,6 +1013,7 @@ function achBorderStyle(color,glow){
 function pageLogros(){
   const achs=S.db.achievements||[];
   const ap=ud().achievementProgress||{};
+  const _lockImg=(S.db.sounds||{}).lockedAchImage||'';
   const cats=Object.keys(ACH_CATS);
   let html='<div style="max-width:680px"><div class="pf" style="font-size:11px;color:#fbbf24;margin-bottom:18px">🏆 Logros</div>';
   let anyAch=false;
@@ -1028,9 +1029,9 @@ function pageLogros(){
       const done=prog.unlocked;
       const inspID=JSON.stringify(ach.id).replace(/"/g,'&quot;');
       html+='<div onclick="S.inspectAch='+inspID+';render()" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;width:84px">';
-      html+='<div style="width:68px;height:68px;border-radius:50%;'+achBorderStyle(ach.color,ach.glow)+';background:#130820;display:flex;align-items:center;justify-content:center;overflow:hidden;'+(done?'':'opacity:.4')+'">';
+      html+='<div style="width:68px;height:68px;border-radius:50%;position:relative;'+achBorderStyle(ach.color,ach.glow)+';background:#130820;display:flex;align-items:center;justify-content:center;overflow:hidden;'+(done?'':'opacity:.4')+'">';
       if(done&&ach.image)html+='<img src="'+esc(ach.image)+'" style="width:100%;height:100%;object-fit:cover">';
-      else html+='<span style="font-size:26px">'+(done?'&#127942;':'&#128274;')+'</span>';
+      else{if(!done&&_lockImg)html+='<img src="'+esc(_lockImg)+'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.35">';html+='<span style="font-size:26px;position:relative;z-index:1">'+(done?'&#127942;':'&#128274;')+'</span>';}
       html+='</div>';
       html+='<div class="pf" style="font-size:5px;color:'+(done?'#fbbf24':'#555')+';text-align:center;line-height:1.6;word-break:break-word">'+esc(ach.title)+'</div>';
       html+='<div class="pf" style="font-size:5px;color:#666">'+Math.min(cur,ach.required)+'/'+ach.required+'</div>';
@@ -1045,9 +1046,9 @@ function pageLogros(){
       const prog=ap[ach.id]||{unlocked:false};
       const cur=getUserProgress(ach.category);
       html+='<div class="overlay" onclick="S.inspectAch=null;render()"><div onclick="event.stopPropagation()" style="background:#130820;border:2px solid #fbbf24;border-radius:16px;padding:24px;max-width:300px;width:100%;display:flex;flex-direction:column;align-items:center;gap:12px">';
-      html+='<div style="width:100px;height:100px;border-radius:50%;'+achBorderStyle(ach.color,ach.glow)+';overflow:hidden;display:flex;align-items:center;justify-content:center">';
+      html+='<div style="width:100px;height:100px;border-radius:50%;position:relative;'+achBorderStyle(ach.color,ach.glow)+';overflow:hidden;display:flex;align-items:center;justify-content:center">';
       if(ach.image&&prog.unlocked)html+='<img src="'+esc(ach.image)+'" style="width:100%;height:100%;object-fit:cover">';
-      else html+='<span style="font-size:44px">'+(prog.unlocked?'&#127942;':'&#128274;')+'</span>';
+      else{if(!prog.unlocked&&_lockImg)html+='<img src="'+esc(_lockImg)+'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.35">';html+='<span style="font-size:44px;position:relative;z-index:1">'+(prog.unlocked?'&#127942;':'&#128274;')+'</span>';}
       html+='</div>';
       html+='<div class="pf" style="font-size:9px;color:#fbbf24;text-align:center">'+esc(ach.title)+'</div>';
       html+='<div style="font-size:12px;color:#a0a0c0;text-align:center;line-height:1.6">'+esc(ach.description||'')+'</div>';
