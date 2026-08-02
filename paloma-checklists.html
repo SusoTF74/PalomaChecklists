@@ -549,7 +549,7 @@ function pageColeccion(){
 function pageIntercambios(){
   const myC=ud().col||{},otC=S.db[other()].col||{},oName=USERS[other()].name;
   const myDups=S.db.cards.filter(c=>(myC[c.id]||0)>=2);
-  const thHas=S.db.cards.filter(c=>(otC[c.id]||0)>=1);
+  const thHas=S.db.cards.filter(c=>(otC[c.id]||0)>1);
   const incoming=(S.db.trades||[]).filter(t=>t.to===S.user&&t.status==='pending');
   const sent=(S.db.trades||[]).filter(t=>t.from===S.user&&t.status==='pending');
   const gc=id=>S.db.cards.find(c=>c.id===id);
