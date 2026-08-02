@@ -42,11 +42,13 @@ html,body{min-height:100%;background:#0d0618;font-family:system-ui,sans-serif;co
 select.inp{cursor:pointer}textarea.inp{resize:vertical;min-height:70px}
 .ns{background:transparent;border:none;cursor:pointer;font-family:'Press Start 2P',monospace;font-size:8px;padding:10px 12px;border-radius:8px;color:#c084fc;transition:all .15s;width:100%;text-align:left;display:flex;align-items:center;gap:9px}
 .ns:hover{background:#ff69b411;color:#ff69b4}.ns.on{background:linear-gradient(135deg,#ff69b4,#c084fc);color:#fff}
-.nm{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;background:none;border:none;cursor:pointer;font-family:'Press Start 2P',monospace;font-size:6px;color:#8b5cf6;transition:color .15s}
+.nm{flex:0 0 auto;min-width:58px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;background:none;border:none;cursor:pointer;font-family:'Press Start 2P',monospace;font-size:6px;color:#8b5cf6;transition:color .15s}
 .nm.on,.nm:hover{color:#ff69b4}
 .overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:#0d061888;backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:500;padding:16px}
 @media(min-width:720px){.snav{display:flex!important;flex-direction:column;gap:3px}.bnav{display:none!important}.mpb{padding-bottom:16px!important}}
 @media(max-width:719px){.snav{display:none!important}.bnav{display:flex!important;justify-content:space-around;padding:4px 0}.mpb{padding-bottom:70px!important}}
+.bnav{overflow-x:auto;scrollbar-width:none}
+.bnav::-webkit-scrollbar{display:none}
 </style>
 </head>
 <body>
@@ -73,7 +75,7 @@ const OS_API_KEY = 'sytn6uakpuvxnlvdauat4e757';
 const USERS={julia:{pw:'Paloma1997',name:'Julia',c:'#ff69b4'},jesus:{pw:'Paloma2003',name:'Jesús',c:'#a78bfa'}};
 const APW='CacaAzucarada2.';
 const PTS=[5,10,15,20,25,30,35,40,45,50];
-const NAV=[{id:'checklist',ic:'✅',lbl:'Checklist'},{id:'tienda',ic:'🛍️',lbl:'Tienda'},{id:'coleccion',ic:'🃏',lbl:'Colección'},{id:'intercambios',ic:'🔄',lbl:'Cambios'},{id:'otro',ic:'💌',lbl:'Mi ½ 🍊'},{id:'album',ic:'📚',lbl:'Álbum'},{id:'eventos',ic:'🎪',lbl:'Eventos'}];
+const NAV=[{id:'checklist',ic:'✅',lbl:'Checklist'},{id:'tienda',ic:'🛍️',lbl:'Tienda'},{id:'coleccion',ic:'🃏',lbl:'Colección'},{id:'intercambios',ic:'🔄',lbl:'Cambios'},{id:'otro',ic:'💌',lbl:'Mi ½ 🍊'},{id:'album',ic:'📚',lbl:'Álbum'},{id:'eventos',ic:'🎪',lbl:'Eventos'},{id:'logros',ic:'🏆',lbl:'Logros'}];
 const R={
   comun:{lbl:'Común',b:'#6b7280',bg:'linear-gradient(160deg,#1a1a2e,#0d0d1a)',tc:'#9ca3af',glow:''},
   poco_comun:{lbl:'Poco Común',b:'#38bdf8',bg:'linear-gradient(160deg,#051828,#02101e)',tc:'#38bdf8',glow:'0 0 12px #38bdf855'},
@@ -88,10 +90,10 @@ const SOBRES={
   mega:{lbl:'Megasobre ✨',cost:300,n:5,icon:'🌟',bc:'#fbbf24',gr:'linear-gradient(135deg,#92400e,#fbbf24)',probs:{comun:15,poco_comun:20,rara:25,epica:25,legendaria:15},epic:true}
 };
 const RANK_DEFS=[['rankBronze','🥉 Icono Bronce (nv. 1-24)'],['rankSilver','🥈 Icono Plata (nv. 25-49)'],['rankGold','🥇 Icono Oro (nv. 50-74)'],['rankPlatinum','💠 Icono Platino (nv. 75-99)'],['rankDiamond','💎 Icono Diamante (nv. 100+)']];
-const SND_DEFS=[['bgMusic','🎵 Música de fondo (bucle)'],['addTask','✅ Añadir tarea'],['completeTask','✓ Completar tarea'],['requestTrade','📤 Enviar intercambio'],['acceptTrade','🤝 Aceptar intercambio'],['openPack','📦 Abrir sobre'],['comun','⬜ Revelar carta Común'],['poco_comun','💙 Revelar carta Poco Común'],['rara','💚 Revelar carta Rara'],['epica','💜 Revelar carta Épica'],['legendaria','⭐ Revelar carta Legendaria'],['toque','🔔 Recibir un toque'],['levelUp','🎵 Sonido Level Up']];
+const SND_DEFS=[['bgMusic','🎵 Música de fondo (bucle)'],['addTask','✅ Añadir tarea'],['completeTask','✓ Completar tarea'],['requestTrade','📤 Enviar intercambio'],['acceptTrade','🤝 Aceptar intercambio'],['openPack','📦 Abrir sobre'],['comun','⬜ Revelar carta Común'],['poco_comun','💙 Revelar carta Poco Común'],['rara','💚 Revelar carta Rara'],['epica','💜 Revelar carta Épica'],['legendaria','⭐ Revelar carta Legendaria'],['toque','🔔 Recibir un toque'],['levelUp','🎵 Sonido Level Up'],['achievement','🏆 Desbloquear logro']];
 
 // ─── STATE ─────────────────────────────────────────────────────────────────
-let S={user:null,page:'checklist',db:null,timer:'--:--:--',selPts:10,pack:null,inspect:null,myCard:null,thCard:null,rarFilt:'all',adminEditId:null,showImport:false,adminRarity:'comun',muted:false,loading:true};
+let S={user:null,page:'checklist',db:null,timer:'--:--:--',selPts:10,pack:null,inspect:null,myCard:null,thCard:null,rarFilt:'all',adminEditId:null,showImport:false,adminRarity:'comun',muted:false,loading:true,inspectAch:null,showOtherAchs:false};
 
 // ─── UTILS ─────────────────────────────────────────────────────────────────
 function uid(){return Math.random().toString(36).slice(2,10)}
@@ -124,7 +126,7 @@ function rollPack(type,pool){
   }
   return drawn;
 }
-function initDB(){return{lastReset:canaryDate(),julia:{pts:0,tasks:[],col:{},xp:0,eventProgress:{}},jesus:{pts:0,tasks:[],col:{},xp:0,eventProgress:{}},cards:[],trades:[],sounds:{},toques:{},events:[]}}
+function initDB(){return{lastReset:canaryDate(),julia:{pts:0,tasks:[],col:{},xp:0,eventProgress:{},achievementProgress:{},tasksCompleted:0,tradesCompleted:0,toquesSent:0},jesus:{pts:0,tasks:[],col:{},xp:0,eventProgress:{},achievementProgress:{},tasksCompleted:0,tradesCompleted:0,toquesSent:0},cards:[],trades:[],sounds:{},toques:{},events:[],achievements:[]}}
 function ud(){return S.db[S.user]}
 function other(){return S.user==='julia'?'jesus':'julia'}
 
@@ -157,6 +159,8 @@ function startSync(){
       if(!data.jesus.xp)data.jesus.xp=0;
       if(!data.pokes)data.pokes={};
       if(!data.events)data.events=[];
+      if(!data.achievements)data.achievements=[];
+      ['julia','jesus'].forEach(u=>{if(!data[u].achievementProgress)data[u].achievementProgress={};if(!data[u].tasksCompleted)data[u].tasksCompleted=0;if(!data[u].tradesCompleted)data[u].tradesCompleted=0;if(!data[u].toquesSent)data[u].toquesSent=0;});
       if(!data.julia.eventProgress)data.julia.eventProgress={};
       if(!data.jesus.eventProgress)data.jesus.eventProgress={};
       const today=canaryDate();
@@ -324,7 +328,9 @@ function doToque(){
   S.db.toques[S.user]=now;
   if(!S.db.pokes)S.db.pokes={};
   S.db.pokes[other()]={from:S.user,ts:Date.now(),seen:false};
+  S.db[S.user].toquesSent=(S.db[S.user].toquesSent||0)+1;
   gainXP(5);
+  setTimeout(checkAchievements,500);
   render();
 }
 
@@ -519,7 +525,17 @@ function pageOtro(){
   const _oRankImg=_oRIcon?'<img src="'+esc(_oRIcon)+'" style="width:20px;height:20px;object-fit:contain">'  :'<span style="font-size:16px">'+getRankEmoji(_oRank)+'</span>';
   const prog=tasks.length?Math.round(done.length/tasks.length*100):0;
   let html='<div style="max-width:580px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><div style="display:flex;align-items:center;gap:8px">'+_oRankImg+'<div><div class="pf" style="font-size:11px;color:#ff69b4">💌 '+oName+'</div><div class="pf" style="font-size:6px;color:#60a5fa;margin-top:2px">Nv. '+_oLv+'</div></div></div><div style="text-align:right"><div class="pf" style="font-size:6px;color:#555;margin-bottom:3px">Reinicia en</div><div class="pf timer-el" style="font-size:10px;color:#fbbf24">'+S.timer+'</div></div></div>';
-  html+='<div style="display:flex;gap:10px;margin-bottom:14px"><div style="background:#130820;border:1px solid #fbbf2422;border-radius:10px;padding:8px 12px;flex:1;text-align:center"><div class="pf" style="font-size:6px;color:#666;margin-bottom:3px">Puntos</div><div class="pf" style="font-size:13px;color:#fbbf24">'+otherPts+'</div></div><div style="background:#130820;border:1px solid #c084fc22;border-radius:10px;padding:8px 12px;flex:1;text-align:center"><div class="pf" style="font-size:6px;color:#666;margin-bottom:3px">Cartas</div><div class="pf" style="font-size:13px;color:#c084fc">'+otherOwned+'/'+_totalCards+'</div></div></div>';
+  html+='<div style="display:flex;gap:10px;margin-bottom:14px"><div style="background:#130820;border:1px solid #fbbf2422;border-radius:10px;padding:8px 12px;flex:1;text-align:center"><div class="pf" style="font-size:6px;color:#666;margin-bottom:3px">Puntos</div><div class="pf" style="font-size:13px;color:#fbbf24">'+otherPts+'</div></div><div style="background:#130820;border:1px solid #c084fc22;border-radius:10px;padding:8px 12px;flex:1;text-align:center"><div class="pf" style="font-size:6px;color:#666;margin-bottom:3px">Cartas</div><div class="pf" style="font-size:13px;color:#c084fc">'+otherOwned+'/'+_totalCards+'</div></div><div onclick="S.showOtherAchs=true;render()" style="background:#130820;border:1px solid #fbbf2422;border-radius:10px;padding:8px 12px;flex:1;text-align:center;cursor:pointer"><div class=\"pf\" style=\"font-size:6px;color:#666;margin-bottom:3px\">Logros</div><div class=\"pf\" style=\"font-size:13px;color:#fbbf24\">'+_oAchUnlocked+'/'+_oAchs.length+'</div></div></div>';
+  const _oAchs=S.db.achievements||[];
+  const _oAchAp=S.db[other()].achievementProgress||{};
+  const _oAchUnlocked=_oAchs.filter(a=>_oAchAp[a.id]&&_oAchAp[a.id].unlocked).length;
+  if(S.showOtherAchs){
+    const _unlAchs=_oAchs.filter(a=>_oAchAp[a.id]&&_oAchAp[a.id].unlocked);
+    html+='<div class="overlay" onclick="S.showOtherAchs=false;render()"><div onclick="event.stopPropagation()" style="background:#130820;border:2px solid #fbbf24;border-radius:16px;padding:20px;max-width:340px;width:100%;max-height:80vh;overflow-y:auto"><div class="pf" style="font-size:9px;color:#fbbf24;margin-bottom:14px">🏆 Logros de '+oName+'</div>';
+    if(_unlAchs.length===0){html+='<div class="pf" style="font-size:7px;color:#555;text-align:center;padding:20px 0">Aún no ha desbloqueado logros</div>';}
+    else{html+='<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">';_unlAchs.forEach(a=>{const isM=a.color==='multicolor';html+='<div style="display:flex;flex-direction:column;align-items:center;gap:5px;width:72px"><div style="width:52px;height:52px;border-radius:50%;border:'+(isM?'2px solid #ff69b4':'2px solid '+(a.color||'#fbbf24'))+';overflow:hidden;display:flex;align-items:center;justify-content:center">'+(a.image?'<img src="'+esc(a.image)+'" style="width:100%;height:100%;object-fit:cover">':'<span style="font-size:22px">&#127942;</span>')+'</div><div class="pf" style="font-size:4px;color:#fbbf24;text-align:center;line-height:1.5">'+esc(a.title)+'</div></div>';});html+='</div>';}
+    html+='<button class="btn-o" onclick="S.showOtherAchs=false;render()" style="width:100%;margin-top:14px">Cerrar</button></div></div>';
+  }
   if(tasks.length>0){
     html+='<div style="background:#130820;border:1px solid #ff69b422;border-radius:10px;padding:12px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span class="pf" style="font-size:7px;color:#c084fc">'+done.length+'/'+tasks.length+' hechas</span><span class="pf" style="font-size:7px;color:#fbbf24">⭐ '+done.reduce((s,t)=>s+t.pts,0)+'/'+tasks.reduce((s,t)=>s+t.pts,0)+'</span></div><div style="background:#07070f;border-radius:20px;height:7px;overflow:hidden"><div style="width:'+prog+'%;height:100%;background:linear-gradient(90deg,#ff69b4,#c084fc);border-radius:20px;transition:width .4s"></div></div></div>';
   }
@@ -731,6 +747,7 @@ function claimEventReward(evtId){
   S.db[S.user].eventProgress[evtId]={...ep,claimed:true};
   save();render();
   playSound('acceptTrade');
+  setTimeout(checkAchievements,500);
 }
 
 function buyEventCard(evtId){
@@ -743,6 +760,7 @@ function buyEventCard(evtId){
   S.db[S.user].col[evt.rewardCard.id]=1;
   S.db[S.user].eventProgress[evtId]={...ep,purchased:true};
   save();render();
+  setTimeout(checkAchievements,500);
 }
 
 let _adminEvt={title:'',image:'',desc:'',rewardTitle:'',rewardImage:'',rewardDesc:'',durValue:14,durUnit:'dias'};
@@ -827,6 +845,142 @@ function doCancelEditEvent(){
 }
 
 
+// ─── LOGROS SYSTEM ──────────────────────────────────────────────────────────
+const ACH_CATS={tasks:{lbl:'✅ Tasks',ic:'✅'},coleccionismo:{lbl:'🃏 Coleccionismo',ic:'🃏'},intercambios:{lbl:'🔄 Intercambios',ic:'🔄'},toques:{lbl:'👆 Toques',ic:'👆'},eventos:{lbl:'🎪 Eventos',ic:'🎪'}};
+
+function getUserProgress(cat,userId){
+  userId=userId||S.user;
+  const u=S.db[userId]||{};
+  switch(cat){
+    case'tasks':return u.tasksCompleted||0;
+    case'coleccionismo':{const col=u.col||{};return Object.keys(col).filter(k=>col[k]>0).length;}
+    case'intercambios':return u.tradesCompleted||0;
+    case'toques':return u.toquesSent||0;
+    case'eventos':{const ep=u.eventProgress||{};return Object.values(ep).filter(p=>p&&p.claimed).length;}
+    default:return 0;
+  }
+}
+
+function showAchievementNotification(ach){
+  playSound('achievement');
+  const old=document.getElementById('ach-banner');if(old)old.remove();
+  const b=document.createElement('div');b.id='ach-banner';
+  b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:1002;background:linear-gradient(135deg,#fbbf24,#f59e0b);padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 24px #fbbf2466;animation:slideDown .3s ease-out;';
+  b.innerHTML='<div style="font-size:26px">&#127942;</div><div style="flex:1"><div class="pf" style="font-size:8px;color:#1a0a00;margin-bottom:4px">&#161;Logro desbloqueado!</div><div class="pf" style="font-size:6px;color:#7c2d12">'+esc(ach.title)+'</div></div><button onclick="document.getElementById(\'ach-banner\').remove()" style="background:none;border:none;cursor:pointer;color:#1a0a00;font-size:20px;padding:0 4px">&#215;</button>';
+  document.body.appendChild(b);
+  setTimeout(()=>{const el=document.getElementById('ach-banner');if(el)el.remove();},5000);
+}
+
+function checkAchievements(){
+  if(!S.db||!S.user||S.user==='admin')return;
+  const achs=S.db.achievements||[];if(!achs.length)return;
+  if(!S.db[S.user].achievementProgress)S.db[S.user].achievementProgress={};
+  const ap=S.db[S.user].achievementProgress;
+  const newlyUnlocked=[];
+  achs.forEach(ach=>{
+    if(ap[ach.id]&&ap[ach.id].unlocked)return;
+    if(getUserProgress(ach.category)>=ach.required){
+      ap[ach.id]={unlocked:true};
+      newlyUnlocked.push(ach);
+    }
+  });
+  if(newlyUnlocked.length>0){
+    save();
+    newlyUnlocked.forEach((ach,i)=>setTimeout(()=>showAchievementNotification(ach),i*3200));
+  }
+}
+
+function achBorderStyle(color){
+  if(color==='multicolor')return'3px solid #ff69b4;animation:lp 3s ease-in-out infinite';
+  return'3px solid '+(color||'#fbbf24');
+}
+
+function pageLogros(){
+  const achs=S.db.achievements||[];
+  const ap=ud().achievementProgress||{};
+  const cats=Object.keys(ACH_CATS);
+  let html='<div style="max-width:680px"><div class="pf" style="font-size:11px;color:#fbbf24;margin-bottom:18px">🏆 Logros</div>';
+  let anyAch=false;
+  cats.forEach(cat=>{
+    const catAchs=achs.filter(a=>a.category===cat).sort((a,b)=>a.required-b.required);
+    if(!catAchs.length)return;
+    anyAch=true;
+    const cur=getUserProgress(cat);
+    html+='<div style="margin-bottom:24px"><div class="pf" style="font-size:8px;color:#fbbf24;margin-bottom:12px">'+ACH_CATS[cat].lbl+'</div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:14px">';
+    catAchs.forEach(ach=>{
+      const prog=ap[ach.id]||{unlocked:false};
+      const done=prog.unlocked;
+      const inspID=JSON.stringify(ach.id).replace(/"/g,'&quot;');
+      html+='<div onclick="'+( done?'S.inspectAch='+inspID+';render()':'')+'" style="cursor:'+(done?'pointer':'default')+';display:flex;flex-direction:column;align-items:center;gap:6px;width:84px">';
+      html+='<div style="width:68px;height:68px;border-radius:50%;border:'+achBorderStyle(ach.color)+';background:#130820;display:flex;align-items:center;justify-content:center;overflow:hidden;'+(done?'':'opacity:.4')+'">';
+      if(done&&ach.image)html+='<img src="'+esc(ach.image)+'" style="width:100%;height:100%;object-fit:cover">';
+      else html+='<span style="font-size:26px">'+(done?'&#127942;':'&#128274;')+'</span>';
+      html+='</div>';
+      html+='<div class="pf" style="font-size:5px;color:'+(done?'#fbbf24':'#555')+';text-align:center;line-height:1.6;word-break:break-word">'+esc(ach.title)+'</div>';
+      html+='<div class="pf" style="font-size:5px;color:#666">'+Math.min(cur,ach.required)+'/'+ach.required+'</div>';
+      html+='</div>';
+    });
+    html+='</div></div>';
+  });
+  if(!anyAch)html+='<div style="text-align:center;padding:48px 0"><div style="font-size:52px;margin-bottom:12px">🏆</div><div class="pf" style="font-size:9px;color:#555">No hay logros configurados</div></div>';
+  if(S.inspectAch){
+    const ach=(S.db.achievements||[]).find(a=>a.id===S.inspectAch);
+    if(ach){
+      const prog=ap[ach.id]||{unlocked:false};
+      const cur=getUserProgress(ach.category);
+      html+='<div class="overlay" onclick="S.inspectAch=null;render()"><div onclick="event.stopPropagation()" style="background:#130820;border:2px solid #fbbf24;border-radius:16px;padding:24px;max-width:300px;width:100%;display:flex;flex-direction:column;align-items:center;gap:12px">';
+      html+='<div style="width:100px;height:100px;border-radius:50%;border:'+achBorderStyle(ach.color)+';overflow:hidden;display:flex;align-items:center;justify-content:center">';
+      if(ach.image&&prog.unlocked)html+='<img src="'+esc(ach.image)+'" style="width:100%;height:100%;object-fit:cover">';
+      else html+='<span style="font-size:44px">&#127942;</span>';
+      html+='</div>';
+      html+='<div class="pf" style="font-size:9px;color:#fbbf24;text-align:center">'+esc(ach.title)+'</div>';
+      html+='<div style="font-size:12px;color:#a0a0c0;text-align:center;line-height:1.6">'+esc(ach.description||'')+'</div>';
+      html+='<div class="pf" style="font-size:7px;color:#888">'+Math.min(cur,ach.required)+'/'+ach.required+'</div>';
+      html+='<button class="btn-o" onclick="S.inspectAch=null;render()">Cerrar</button>';
+      html+='</div></div>';
+    }
+  }
+  html+='</div>';
+  return html;
+}
+
+let _adminAch={title:'',image:'',description:'',category:'tasks',required:1,color:'#fbbf24'};
+let _adminAchEditId=null;
+
+function saveAdminAchForm(){
+  const f=(id,key)=>{const el=document.getElementById(id);if(el)_adminAch[key]=el.value;};
+  f('aa-title','title');f('aa-image','image');f('aa-desc','description');
+  f('aa-cat','category');f('aa-req','required');f('aa-color','color');
+}
+function restoreAdminAchForm(){
+  const f=(id,key)=>{const el=document.getElementById(id);if(el)el.value=_adminAch[key]||'';};
+  f('aa-title','title');f('aa-image','image');f('aa-desc','description');
+  f('aa-cat','category');f('aa-req','required');f('aa-color','color');
+}
+function doSaveAchievement(){
+  saveAdminAchForm();
+  if(!_adminAch.title){flashAdmin('❌ Falta el título');return;}
+  const ach={id:_adminAchEditId||uid(),title:_adminAch.title,image:_adminAch.image,description:_adminAch.description,category:_adminAch.category,required:Math.max(1,+_adminAch.required||1),color:_adminAch.color||'#fbbf24'};
+  if(!S.db.achievements)S.db.achievements=[];
+  if(_adminAchEditId){S.db.achievements=S.db.achievements.map(a=>a.id===_adminAchEditId?ach:a);}
+  else{S.db.achievements.push(ach);}
+  _adminAchEditId=null;_adminAch={title:'',image:'',description:'',category:'tasks',required:1,color:'#fbbf24'};
+  save();render();flashAdmin('✅ Logro guardado');
+}
+function doEditAchievement(id){
+  const ach=(S.db.achievements||[]).find(a=>a.id===id);if(!ach)return;
+  _adminAchEditId=id;
+  _adminAch={title:ach.title,image:ach.image||'',description:ach.description||'',category:ach.category,required:ach.required,color:ach.color||'#fbbf24'};
+  render();window.scrollTo(0,99999);
+}
+function doDeleteAchievement(id){
+  if(!confirm('¿Eliminar este logro?'))return;
+  S.db.achievements=(S.db.achievements||[]).filter(a=>a.id!==id);
+  save();render();
+}
+
+
 function render(){
   if(S.loading){document.getElementById('app').innerHTML='<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px"><div style="font-size:48px">🕊️</div><div class="pf" style="color:#ff69b4;font-size:10px">Cargando...</div></div>';return}
   const app=document.getElementById('app');
@@ -835,6 +989,8 @@ function render(){
     try{
       app.innerHTML=pageAdmin();
       restoreAdminForm();
+      restoreAdminEvtForm();
+      restoreAdminAchForm();
     }catch(e){
       console.error('Admin crash:',e);
       app.innerHTML='<div style="padding:20px;color:#f87171;font-family:monospace;font-size:12px;background:#1a0a2e;min-height:100vh"><b>Error en admin:</b><br>'+e.message+'<br><br>'+e.stack.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div>';
@@ -875,7 +1031,7 @@ function doToggleTask(id){
   const task=S.db[S.user].tasks.find(t=>t.id===id);
   if(!task)return;
   task.done=!task.done;
-  if(task.done){playSound('completeTask');gainXP(task.pts);}
+  if(task.done){playSound('completeTask');gainXP(task.pts);S.db[S.user].tasksCompleted=(S.db[S.user].tasksCompleted||0)+1;setTimeout(checkAchievements,500);}
   S.db[S.user].pts=Math.max(0,S.db[S.user].pts+(task.done?task.pts:-task.pts));
   save();
 }
@@ -894,6 +1050,7 @@ function doBuyPack(type){
   S.db[S.user].pts-=cfg.cost;
   save();
   gainXP(cfg.cost);
+  setTimeout(checkAchievements,500);
   playSound('openPack');
   S.pack={type,cards,revealed:0};
   render();
@@ -919,9 +1076,12 @@ function doTrade(tid,accept){
     const _oLvT=getLevel(S.db[S.user].xp||0);
     S.db[tr.from].xp=(S.db[tr.from].xp||0)+20;
     S.db[tr.to].xp=(S.db[tr.to].xp||0)+20;
+    S.db[tr.from].tradesCompleted=(S.db[tr.from].tradesCompleted||0)+1;
+    S.db[tr.to].tradesCompleted=(S.db[tr.to].tradesCompleted||0)+1;
     const _nLvT=getLevel(S.db[S.user].xp);
     save();
     showXPEffect(20,_nLvT>_oLvT);
+    setTimeout(checkAchievements,500);
     return;
   }
   save();
