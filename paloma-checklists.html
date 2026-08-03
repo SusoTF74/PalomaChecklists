@@ -181,7 +181,7 @@ function startSync(){
       if(!data.lastMonthlyReset)data.lastMonthlyReset='';
       if(!data.album)data.album={visible:false,cover:{image:''},back:{image:''},pages:[],sounds:{pageFlip:'',cardStick:''}};
       if(!data.album.sounds)data.album.sounds={pageFlip:'',cardStick:''};
-      if(data.album.pages){data.album.pages=toArr(data.album.pages);data.album.pages.forEach(p=>{if(p&&p.slots){p.slots=toArr(p.slots);p.slots.forEach(s=>{if(s&&s.w){if(s.w<24)s.w=24;s.h=Math.round(s.w*1.10*100)/100;if(s.x+s.w>100)s.x=Math.max(0,100-s.w);if(s.y+s.h>100)s.y=Math.max(0,100-s.h);}});}});}
+      if(data.album.pages){data.album.pages=toArr(data.album.pages);data.album.pages.forEach(p=>{if(p&&p.slots){p.slots=toArr(p.slots);p.slots.forEach(s=>{if(s&&s.w){if(s.w<24)s.w=24;s.h=Math.round(s.w*0.962*100)/100;if(s.x+s.w>100)s.x=Math.max(0,100-s.w);if(s.y+s.h>100)s.y=Math.max(0,100-s.h);}});}});}
       ['julia','jesus'].forEach(u=>{if(!data[u].albumStickers)data[u].albumStickers={};});
       ['julia','jesus'].forEach(u=>{
         if(!data[u].weeklyTasks)data[u].weeklyTasks=[];
@@ -801,7 +801,7 @@ function doAddSlotClick(pageId,event){
   const y=+((event.clientY-rect.top)/rect.height*100).toFixed(1);
   const page=(S.db.album.pages||[]).find(p=>p.id===pageId);if(!page)return;
   if(!page.slots)page.slots=[];
-  page.slots.push({id:uid(),cardId:null,x,y,w:24,h:26.4});
+  page.slots.push({id:uid(),cardId:null,x,y,w:24,h:23.1});
   save();render();window.scrollTo(0,99999);
 }
 function doDeleteSlot(pageId,slotId){
