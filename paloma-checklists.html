@@ -787,7 +787,7 @@ function doStickCard(pageId,slotId){
     slotEl.innerHTML='<div class="alb-fit-wrap" onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;position:relative;cursor:pointer;overflow:visible">'
       +'<div class="alb-fit-card" style="width:92px;position:absolute;top:0;left:0;transform-origin:top left">'+cardHTMLSm(card,0)+'</div>'
       +'</div>';
-    requestAnimationFrame(fitAlbumCards);
+    requestAnimationFrame(function(){fitAlbumCards();if(slotEl){slotEl.style.animation='none';void slotEl.offsetHeight;slotEl.style.animation='stickCard .5s ease-out';}});
   }else{
     render();
   }
@@ -881,8 +881,8 @@ function pageAlbum(){
         +'<div class="alb-fit-card" style="width:92px;position:absolute;top:0;left:0;transform-origin:top left">'+cardHTMLSm(card,0)+'</div>'
         +'</div>';
     }else if(canStick){
-      inner='<div style="width:100%;height:100%;box-sizing:border-box;border:2px dashed #ff69b466;border-radius:4px;background:#0d060eaa;display:flex;align-items:center;justify-content:center">'
-        +'<button onclick="doStickCard(\''+page.id+'\',\''+slot.id+'\')" style="width:30px;height:30px;border:none;border-radius:50%;background:linear-gradient(135deg,#ff69b4,#c084fc);font-size:18px;font-weight:bold;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center;padding:0;animation:stickPulse 1s ease-in-out infinite">+</button>'
+      inner='<div style="width:100%;height:100%;box-sizing:border-box;border:2px dashed #ff69b466;border-radius:4px;background:#0d060eaa;position:relative">'
+        +'<button onclick="doStickCard(\''+page.id+'\',\''+slot.id+'\')" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:30px;height:30px;border:none;border-radius:50%;background:linear-gradient(135deg,#ff69b4,#c084fc);font-size:18px;font-weight:bold;cursor:pointer;color:white;padding:0;line-height:1;animation:stickPulse 1s ease-in-out infinite">+</button>'
         +'</div>';
     }else{
       inner='<div style="width:100%;height:100%;box-sizing:border-box;border:2px dashed #ffffff33;border-radius:4px;background:#07070fcc;display:flex;align-items:center;justify-content:center"><span style="font-size:12px;opacity:.55">❓</span></div>';
