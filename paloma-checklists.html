@@ -702,9 +702,14 @@ function doFlipPage(dir){
   if(nxt===cur)return;
   S.albumPage=nxt;
   playAlbumSound('pageFlip');
-  const mainEl=document.querySelector('main.mpb');
-  if(mainEl){mainEl.innerHTML=pageAlbum();}else{render();}
+  const el=document.getElementById('album-root');
+  if(el){
+    const tmp=document.createElement('div');
+    tmp.innerHTML=pageAlbum();
+    el.parentNode.replaceChild(tmp.firstChild,el);
+  }else{render();}
 }
+
 function doStickCard(pageId,slotId){
   const album=S.db.album||{};
   const page=(album.pages||[]).find(p=>p.id===pageId);if(!page)return;
@@ -724,7 +729,7 @@ function doAddSlotClick(pageId,event){
   const y=+((event.clientY-rect.top)/rect.height*100).toFixed(1);
   const page=(S.db.album.pages||[]).find(p=>p.id===pageId);if(!page)return;
   if(!page.slots)page.slots=[];
-  page.slots.push({id:uid(),cardId:null,x,y,w:13,h:20});
+  page.slots.push({id:uid(),cardId:null,x,y,w:15,h:22});
   save();render();window.scrollTo(0,99999);
 }
 function doDeleteSlot(pageId,slotId){
@@ -849,7 +854,9 @@ function pageAlbum(){
   const containerW=isSingle?'58%':'calc(100% - 44px)';
 
   // Album label
-  let html='<div style="max-width:600px;margin:0 auto">';
+  let html='<div id="album-root" style="max-width:600px;margin:0 auto">';
+  html+='<div style="text-align:center;padding:3px 8px;background:#1a0a2e;border-radius:6px;margin-bottom:6px">';
+  html+='<span class="pf" style="font-size:5px;color:#888">📱 Mejor experiencia en horizontal</span></div>';
   html+='<div style="text-align:center;margin-bottom:6px"><span class="pf" style="font-size:6px;color:#555">'+label+'</span></div>';
 
   // Wrapper: arrows float on sides, album in center
@@ -859,7 +866,7 @@ function pageAlbum(){
   html+='<button onclick="doFlipPage(\'prev\')" '+(canPrev?'':'disabled')+' style="flex-shrink:0;width:38px;height:38px;border:none;border-radius:50%;font-size:20px;cursor:'+(canPrev?'pointer':'default')+';color:white;background:'+(canPrev?'linear-gradient(135deg,#c084fc,#ff69b4)':'#333')+';opacity:'+(canPrev?'1':'0.3')+'">◀</button>';
 
   // Album
-  html+='<div style="flex:1;aspect-ratio:'+containerAR+';background:#0d0618;border-radius:10px;border:2px solid #ff69b433;overflow:hidden;box-shadow:0 8px 32px #000a;animation:albIn .3s ease-out;position:relative;margin:0 4px">'+content+'</div>';
+  html+='<div style="flex:1;aspect-ratio:'+containerAR+';background:#0d0618;border-radius:10px;border:2px solid #ff69b433;overflow:hidden;box-shadow:0 8px 32px #000a;position:relative;margin:0 4px">'+content+'</div>';
 
   // Right arrow
   html+='<button onclick="doFlipPage(\'next\')" '+(canNext?'':'disabled')+' style="flex-shrink:0;width:38px;height:38px;border:none;border-radius:50%;font-size:20px;cursor:'+(canNext?'pointer':'default')+';color:white;background:'+(canNext?'linear-gradient(135deg,#ff69b4,#c084fc)':'#333')+';opacity:'+(canNext?'1':'0.3')+'">▶</button>';
