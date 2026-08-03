@@ -181,7 +181,7 @@ function startSync(){
       if(!data.lastMonthlyReset)data.lastMonthlyReset='';
       if(!data.album)data.album={visible:false,cover:{image:''},back:{image:''},pages:[],sounds:{pageFlip:'',cardStick:''}};
       if(!data.album.sounds)data.album.sounds={pageFlip:'',cardStick:''};
-      if(data.album.pages){data.album.pages=toArr(data.album.pages);data.album.pages.forEach(p=>{if(p&&p.slots){p.slots=toArr(p.slots);p.slots.forEach(s=>{if(s&&s.w)s.h=Math.round(s.w*1.10*100)/100;});}});}
+      if(data.album.pages){data.album.pages=toArr(data.album.pages);data.album.pages.forEach(p=>{if(p&&p.slots){p.slots=toArr(p.slots);p.slots.forEach(s=>{if(s&&s.w){if(s.w<19)s.w=19;s.h=Math.round(s.w*1.10*100)/100;if(s.x+s.w>100)s.x=Math.max(0,100-s.w);if(s.y+s.h>100)s.y=Math.max(0,100-s.h);}});}});}
       ['julia','jesus'].forEach(u=>{if(!data[u].albumStickers)data[u].albumStickers={};});
       ['julia','jesus'].forEach(u=>{
         if(!data[u].weeklyTasks)data[u].weeklyTasks=[];
@@ -694,6 +694,11 @@ function startSlotDrag(pageId,slotId,event){
   document.addEventListener('touchmove',onMove,{passive:false});document.addEventListener('touchend',onEnd);
 }
 
+function getAllCards(){
+  const ec=(S.db.events||[]).map(e=>e&&e.rewardCard).filter(Boolean);
+  return (S.db.cards||[]).concat(ec);
+}
+
 function fitAlbumCards(){
   document.querySelectorAll('.alb-fit-wrap').forEach(function(wrap){
     const card=wrap.querySelector('.alb-fit-card');
@@ -768,7 +773,7 @@ function doStickCard(pageId,slotId){
   const slot=toArr(page.slots||[]).find(s=>s.id===slotId);
   if(!slot){console.warn('doStickCard: slot not found',slotId);return;}
   if(!slot.cardId){console.warn('doStickCard: no cardId on slot');return;}
-  const card=S.db.cards.find(c=>c.id===slot.cardId);
+  const card=getAllCards().find(c=>c.id===slot.cardId);
   if(!card){console.warn('doStickCard: card not found',slot.cardId);return;}
   const col=ud().col||{};
   if(!(col[slot.cardId]>0)){console.warn('doStickCard: no card in collection');return;}
@@ -796,7 +801,7 @@ function doAddSlotClick(pageId,event){
   const y=+((event.clientY-rect.top)/rect.height*100).toFixed(1);
   const page=(S.db.album.pages||[]).find(p=>p.id===pageId);if(!page)return;
   if(!page.slots)page.slots=[];
-  page.slots.push({id:uid(),cardId:null,x,y,w:15,h:16.5});
+  page.slots.push({id:uid(),cardId:null,x,y,w:19,h:20.9});
   save();render();window.scrollTo(0,99999);
 }
 function doDeleteSlot(pageId,slotId){
@@ -867,7 +872,7 @@ function pageAlbum(){
 
   function slotDiv(page,slot){
     if(!page||!slot)return'';
-    const card=S.db.cards.find(c=>c.id===slot.cardId);
+    const card=getAllCards().find(c=>c.id===slot.cardId);
     const stuck=stickers[slot.id];
     const canStick=card&&(col[slot.cardId]>0)&&!stuck;
     let inner='';
@@ -1370,7 +1375,7 @@ function pageAdmin(){
   const byR={};Object.keys(R).forEach(r=>{byR[r]=(S.db.cards||[]).filter(c=>c.rarity===r)});
   const evts=(S.db.events||[]);
   const now=Date.now();
-  const stats=[['Cartas',(S.db.cards||[]).length,'#ff69b4'],['Julia ⭐',S.db.julia.pts,'#ff69b4'],['Jesús ⭐',S.db.jesus.pts,'#a78bfa'],['Eventos',evts.length,'#fbbf24']];
+  const stats=[['Cartas',getAllCards().length,'#ff69b4'],['Julia ⭐',S.db.julia.pts,'#ff69b4'],['Jesús ⭐',S.db.jesus.pts,'#a78bfa'],['Eventos',evts.length,'#fbbf24']];
   const rarOpts=Object.entries(R).map(([k,v])=>'<option value="'+k+'" '+(S.adminRarity===k?'selected':'')+'>'+v.lbl+'</option>').join('');
   let html='<div style="max-width:760px;margin:0 auto;padding-bottom:40px">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">'
@@ -1546,7 +1551,7 @@ function pageAdmin(){
               +'<span style="background:#4ade80;color:#0d0618;font-size:8px;border-radius:3px;padding:2px 5px;font-weight:bold;flex-shrink:0">'+(si+1)+'</span>'
               +'<select onchange="doLinkSlotCard(\''+page.id+'\',\''+slot.id+'\',this.value)" style="flex:1;background:#07070f;border:1px solid #333;border-radius:6px;color:#f0d6ff;padding:5px;font-size:11px">'
               +'<option value="">— Sin carta —</option>';
-            (S.db.cards||[]).forEach(function(c){
+            getAllCards().forEach(function(c){
               html+='<option value="'+c.id+'"'+(slot.cardId===c.id?' selected':'')+'>'+esc(c.title)+' ('+c.rarity+')</option>';
             });
             html+='</select></div>';
