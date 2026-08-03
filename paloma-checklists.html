@@ -694,6 +694,15 @@ function startSlotDrag(pageId,slotId,event){
   document.addEventListener('touchmove',onMove,{passive:false});document.addEventListener('touchend',onEnd);
 }
 
+function playAlbumSound(key){
+  const url=((S.db.album||{}).sounds||{})[key];
+  if(!url||S.muted)return;
+  try{const pool=audioPool['album_'+key];
+    if(pool&&pool.length){const a=pool[pool._i%2];pool._i=(pool._i+1)%2;a.currentTime=0;a.play().catch(()=>{});}
+    else{const a=new Audio(url);a.volume=0.7;a.play().catch(()=>{});}
+  }catch(e){}
+}
+
 function doFlipPage(dir){
   const album=S.db.album||{};
   const pages=toArr(album.pages||[]);
