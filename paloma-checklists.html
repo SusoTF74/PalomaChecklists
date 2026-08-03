@@ -694,6 +694,20 @@ function startSlotDrag(pageId,slotId,event){
   document.addEventListener('touchmove',onMove,{passive:false});document.addEventListener('touchend',onEnd);
 }
 
+function fitAlbumCards(){
+  document.querySelectorAll('.alb-fit-wrap').forEach(function(wrap){
+    const card=wrap.querySelector('.alb-fit-card');
+    if(!card)return;
+    const W=wrap.clientWidth,H=wrap.clientHeight;
+    if(!W||!H)return;
+    const cw=92, ch=card.offsetHeight||135;
+    const s=Math.min(W/cw,H/ch);
+    card.style.transform='scale('+s+')';
+    card.style.left=((W-cw*s)/2)+'px';
+    card.style.top=((H-ch*s)/2)+'px';
+  });
+}
+
 function playAlbumSound(key){
   const url=((S.db.album||{}).sounds||{})[key];
   if(!url||S.muted)return;
@@ -743,6 +757,7 @@ function doFlipPage(dir){
     el.style.width=i===nxt?'18px':'7px';
     el.style.background=i===nxt?'#ff69b4':'#333';
   });
+  requestAnimationFrame(fitAlbumCards);
 }
 
 function doStickCard(pageId,slotId){
@@ -763,15 +778,10 @@ function doStickCard(pageId,slotId){
   // Update just the slot div in-place
   const slotEl=document.getElementById('slot-'+slotId);
   if(slotEl){
-    const _r2=R[card.rarity]||R.comun;
-    const _b2=card.rarity==='legendaria'?'#ff69b4':_r2.b;
-    const _bg2={comun:'#1a1a2e',poco_comun:'#051828',rara:'#041a08',epica:'#1a0530',legendaria:'#1a0e00',evento:'#2a0520'}[card.rarity]||'#130820';
-    slotEl.innerHTML='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;">'
-      +'<div style="width:100%;aspect-ratio:92/138;max-height:100%;position:relative;border:2px solid '+_b2+';border-radius:4px;overflow:hidden;background:'+_bg2+';flex-shrink:0;">'
-      +(card.image?'<img src="'+esc(card.image)+'" style="position:absolute;top:18%;left:0;width:100%;height:64%;object-fit:cover">':'')
-      +'<div style="position:absolute;top:0;left:0;right:0;padding:2px 3px;text-align:center;background:'+_bg2+';overflow:hidden;white-space:nowrap;text-overflow:ellipsis;"><span class="pf" style="font-size:max(3px,1vw);color:'+_r2.tc+'">'+esc(card.title||'')+'</span></div>'
-      +'<div style="position:absolute;bottom:0;left:0;right:0;padding:2px;text-align:center;background:'+_bg2+';"><span class="pf" style="font-size:max(2px,.8vw);color:'+_r2.tc+'">'+_r2.lbl.toUpperCase()+'</span></div>'
-      +'</div></div>';
+    slotEl.innerHTML='<div class="alb-fit-wrap" onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;position:relative;cursor:pointer;overflow:visible">'
+      +'<div class="alb-fit-card" style="width:92px;position:absolute;top:0;left:0;transform-origin:top left">'+cardHTMLSm(card,0)+'</div>'
+      +'</div>';
+    requestAnimationFrame(fitAlbumCards);
   }else{
     render();
   }
@@ -861,21 +871,9 @@ function pageAlbum(){
     const canStick=card&&(col[slot.cardId]>0)&&!stuck;
     let inner='';
     if(stuck&&card){
-      (function(){
-        const _r=R[card.rarity]||R.comun;
-        const _b=card.rarity==='legendaria'?'#ff69b4':_r.b;
-        const bgMap={comun:'#1a1a2e',poco_comun:'#051828',rara:'#041a08',epica:'#1a0530',legendaria:'#1a0e00',evento:'#2a0520'};
-        const _bg=bgMap[card.rarity]||'#130820';
-        inner='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" '
-          +'style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;">'
-          +'<div style="width:100%;aspect-ratio:92/138;max-height:100%;position:relative;border:2px solid '+_b+';border-radius:4px;overflow:hidden;background:'+_bg+';flex-shrink:0;">'
-          +(card.image?'<img src="'+esc(card.image)+'" style="position:absolute;top:18%;left:0;width:100%;height:64%;object-fit:cover">':'')
-          +'<div style="position:absolute;top:0;left:0;right:0;padding:2px 3px;text-align:center;background:'+_bg+';overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">'
-          +'<span class="pf" style="font-size:max(3px,1vw);color:'+_r.tc+'">'+esc(card.title||'')+'</span></div>'
-          +'<div style="position:absolute;bottom:0;left:0;right:0;padding:2px;text-align:center;background:'+_bg+';">'
-          +'<span class="pf" style="font-size:max(2px,.8vw);color:'+_r.tc+'">'+_r.lbl.toUpperCase()+'</span></div>'
-          +'</div></div>';
-      })();
+      inner='<div class="alb-fit-wrap" onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;position:relative;cursor:pointer;overflow:visible">'
+        +'<div class="alb-fit-card" style="width:92px;position:absolute;top:0;left:0;transform-origin:top left">'+cardHTMLSm(card,0)+'</div>'
+        +'</div>';
     }else if(canStick){
       inner='<div style="width:100%;height:100%;border:2px dashed #ff69b466;border-radius:4px;background:#0d060eaa;display:flex;align-items:center;justify-content:center">'
         +'<button onclick="doStickCard(\''+page.id+'\',\''+slot.id+'\')" style="width:30px;height:30px;border:none;border-radius:50%;background:linear-gradient(135deg,#ff69b4,#c084fc);font-size:18px;font-weight:bold;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center;padding:0;animation:stickPulse 1s ease-in-out infinite">+</button>'
@@ -1599,7 +1597,7 @@ function render(){
     return;
   }
   try{app.innerHTML=pageMain();}catch(e){console.error('pageMain crash:',e);document.getElementById('app').innerHTML='<div style="padding:20px;color:#f87171;font-family:monospace;font-size:12px">Error: '+e.message+'</div>';}
-  requestAnimationFrame(()=>{const _b=document.querySelector('.bnav');if(_b)_b.scrollLeft=_bnavSc;});
+  requestAnimationFrame(()=>{const _b=document.querySelector('.bnav');if(_b)_b.scrollLeft=_bnavSc;fitAlbumCards();});
 }
 
 let _afc={title:'',rarity:'comun',image:'',desc:''};
