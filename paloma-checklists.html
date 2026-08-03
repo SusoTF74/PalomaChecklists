@@ -217,7 +217,7 @@ function startSync(){
 
 // ─── SOUNDS ────────────────────────────────────────────────────────────────
 let bgAudio=null;
-const audioCache={};
+const audioPool={};
 
 function preloadImages(){
   if(!S.db)return;
@@ -239,12 +239,16 @@ function preloadSounds(){
   Object.entries(S.db.sounds).forEach(([key,url])=>{
     if(!url)return;
     try{
-      if(!audioCache[key]||audioCache[key].src!==url){
-        const a=new Audio();
+      const pool=audioPool[key];
+      if(pool&&pool[0]&&pool[0].src===url)return;
+      audioPool[key]=[0,1].map(()=>{
+        const a=new Audio(url);
         a.preload='auto';
-        a.src=url;
-        audioCache[key]=a;
-      }
+        a.volume=0.7;
+        a.load();
+        return a;
+      });
+      audioPool[key]._i=0;
     }catch(e){}
   });
 }
@@ -254,10 +258,11 @@ function playSound(key){
   const url=(S.db.sounds||{})[key];
   if(!url)return;
   try{
-    const cached=audioCache[key];
-    if(cached&&cached.readyState>=2){
-      const a=cached.cloneNode();
-      a.volume=0.7;
+    const pool=audioPool[key];
+    if(pool&&pool.length){
+      const a=pool[pool._i%2];
+      pool._i=(pool._i+1)%2;
+      a.currentTime=0;
       a.play().catch(()=>{});
     }else{
       const a=new Audio(url);
