@@ -704,27 +704,53 @@ function doFlipPage(dir){
   if(nxt===cur)return;
   S.albumPage=nxt;
   playAlbumSound('pageFlip');
-  setTimeout(function(){
-    try{
-      const el=document.getElementById('album-root');
-      const newHtml=pageAlbum();
-      if(el&&el.parentNode){el.outerHTML=newHtml;}
-      else{render();}
-    }catch(e){console.error('flip error:',e);render();}
-  },0);
+  // Toggle visibility — pure CSS, always works
+  document.querySelectorAll('.alb-pos').forEach(function(el){
+    const pos=+el.dataset.pos;
+    el.style.display=(pos===nxt)?'flex':'none';
+  });
+  // Update label
+  const lbl=document.getElementById('alb-label');
+  if(lbl){
+    if(nxt===0)lbl.textContent='Portada';
+    else if(nxt===total-1)lbl.textContent='Contraportada';
+    else{const si=nxt-1;lbl.textContent='Págs. '+(si*2+1)+(pages[si*2+1]?' y '+(si*2+2):'');}
+  }
+  // Update arrows
+  const pb=document.getElementById('alb-prev'),nb=document.getElementById('alb-next');
+  if(pb){pb.disabled=nxt<=0;pb.style.opacity=nxt>0?'1':'0.3';pb.style.background=nxt>0?'linear-gradient(135deg,#c084fc,#ff69b4)':'#333';}
+  if(nb){nb.disabled=nxt>=total-1;nb.style.opacity=nxt<total-1?'1':'0.3';nb.style.background=nxt<total-1?'linear-gradient(135deg,#ff69b4,#c084fc)':'#333';}
+  // Update dots
+  document.querySelectorAll('.alb-dot').forEach(function(el,i){
+    el.style.width=i===nxt?'18px':'7px';
+    el.style.background=i===nxt?'#ff69b4':'#333';
+  });
 }
 
 function doStickCard(pageId,slotId){
   const album=S.db.album||{};
-  const page=toArr(album.pages||[]).find(p=>p.id===pageId);if(!page)return;
-  const slot=toArr(page.slots||[]).find(s=>s.id===slotId);if(!slot||!slot.cardId)return;
-  const col=ud().col||{};if(!(col[slot.cardId]>0))return;
+  const page=toArr(album.pages||[]).find(p=>p.id===pageId);
+  if(!page){console.warn('doStickCard: page not found',pageId);return;}
+  const slot=toArr(page.slots||[]).find(s=>s.id===slotId);
+  if(!slot){console.warn('doStickCard: slot not found',slotId);return;}
+  if(!slot.cardId){console.warn('doStickCard: no cardId on slot');return;}
+  const card=S.db.cards.find(c=>c.id===slot.cardId);
+  if(!card){console.warn('doStickCard: card not found',slot.cardId);return;}
+  const col=ud().col||{};
+  if(!(col[slot.cardId]>0)){console.warn('doStickCard: no card in collection');return;}
   if(!S.db[S.user].albumStickers)S.db[S.user].albumStickers={};
   S.db[S.user].albumStickers[slotId]=true;
   playAlbumSound('cardStick');
-  save();render();
-  requestAnimationFrame(()=>{const el=document.getElementById('slot-'+slotId);if(el)el.style.animation='stickCard .5s ease-out';});
+  save();
+  // Update just the slot div in-place
+  const slotEl=document.getElementById('slot-'+slotId);
+  if(slotEl&&card.image){
+    slotEl.innerHTML='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;border-radius:4px;overflow:hidden;cursor:pointer"><img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover"></div>';
+  }else{
+    render();
+  }
 }
+
 function doAddSlotClick(pageId,event){
   event.stopPropagation();
   const container=document.getElementById('alb-ed-'+pageId);if(!container)return;
@@ -792,7 +818,7 @@ function doEditAlbumPage(id){
 function pageAlbum(){
   const album=S.db.album||{};
   if(!album.visible){
-    return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center"><div style="font-size:52px;margin-bottom:18px">📖</div><div class="pf" style="font-size:10px;color:#ff69b4;margin-bottom:12px">Álbum</div><div class="pf" style="font-size:7px;color:#555;line-height:1.8">Esta sección está<br>en desarrollo<br>¡Vuelve pronto!</div></div>';
+    return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center"><div style="font-size:52px;margin-bottom:18px">📖</div><div class="pf" style="font-size:10px;color:#ff69b4;margin-bottom:12px">Álbum</div><div class="pf" style="font-size:7px;color:#555;line-height:1.8">Esta sección está<br>en desarrollo</div></div>';
   }
   const pages=toArr(album.pages||[]);
   const col=ud().col||{};
@@ -802,91 +828,86 @@ function pageAlbum(){
   const cur=S.albumPage||0;
   const canPrev=cur>0, canNext=cur<total-1;
 
-  function slotsHTML(page){
-    if(!page)return'';
-    return toArr(page.slots||[]).map(function(slot){
-      const card=S.db.cards.find(c=>c.id===slot.cardId);
-      const stuck=stickers[slot.id];
-      const canStick=card&&(col[slot.cardId]>0)&&!stuck;
-      let inner='';
-      if(stuck&&card){
-        inner='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;border-radius:4px;overflow:hidden;cursor:pointer;box-shadow:0 2px 10px #000a">'          +(card.image?'<img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover">':'<div style="width:100%;height:100%;background:#130820;display:flex;align-items:center;justify-content:center;font-size:20px">🎴</div>')          +'</div>';
-      }else if(canStick){
-        inner='<div style="width:100%;height:100%;border:2px dashed #ff69b466;border-radius:3px;background:#0d060eaa;position:relative;display:flex;align-items:center;justify-content:center">'
-          +'<button onclick="doStickCard(\''+page.id+'\',\''+slot.id+'\')" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,#ff69b4,#c084fc);border:none;border-radius:50%;width:22px;height:22px;font-size:15px;font-weight:bold;cursor:pointer;color:white;animation:stickPulse 1s ease-in-out infinite;display:flex;align-items:center;justify-content:center;padding:0">+</button>'
-          +'</div>';
-      }else{
-        inner='<div style="width:100%;height:100%;border:2px dashed #ffffff33;border-radius:3px;background:#07070fcc;display:flex;align-items:center;justify-content:center"><span style="font-size:12px;opacity:.55">❓</span></div>';
-      }
-      return'<div id="slot-'+slot.id+'" style="position:absolute;left:'+slot.x+'%;top:'+slot.y+'%;width:'+slot.w+'%;height:'+slot.h+'%;z-index:5;box-sizing:border-box">'+inner+'</div>';
-    }).join('');
-  }
-
-  function pageDiv(page, side){
-    const radius=side==='left'?'7px 0 0 7px':'0 7px 7px 0';
+  function slotDiv(page,slot){
+    if(!page||!slot)return'';
+    const card=S.db.cards.find(c=>c.id===slot.cardId);
+    const stuck=stickers[slot.id];
+    const canStick=card&&(col[slot.cardId]>0)&&!stuck;
     let inner='';
-    if(page&&page.image)inner='<img src="'+esc(page.image)+'" style="width:100%;height:100%;object-fit:cover">';
-    inner+=slotsHTML(page);
-    return'<div style="flex:1;position:relative;overflow:hidden;border-radius:'+radius+'">'+inner+'</div>';
+    if(stuck&&card&&card.image){
+      inner='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;border-radius:4px;overflow:hidden;cursor:pointer"><img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover"></div>';
+    }else if(stuck&&card){
+      inner='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;background:#130820;border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px">🎴</div>';
+    }else if(canStick){
+      inner='<div style="width:100%;height:100%;border:2px dashed #ff69b466;border-radius:4px;background:#0d060eaa;display:flex;align-items:center;justify-content:center">'
+        +'<button onclick="doStickCard(\''+page.id+'\',\''+slot.id+'\')" style="width:30px;height:30px;border:none;border-radius:50%;background:linear-gradient(135deg,#ff69b4,#c084fc);font-size:18px;font-weight:bold;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center;padding:0;animation:stickPulse 1s ease-in-out infinite">+</button>'
+        +'</div>';
+    }else{
+      inner='<div style="width:100%;height:100%;border:2px dashed #ffffff33;border-radius:4px;background:#07070fcc;display:flex;align-items:center;justify-content:center"><span style="font-size:12px;opacity:.55">❓</span></div>';
+    }
+    return'<div id="slot-'+slot.id+'" style="position:absolute;left:'+slot.x+'%;top:'+slot.y+'%;width:'+slot.w+'%;height:'+slot.h+'%;z-index:5;box-sizing:border-box">'+inner+'</div>';
   }
 
-  let content='', isSingle=false, label='';
-
-  if(cur===0){
-    isSingle=true; label='Portada';
-    content='<div style="position:relative;width:100%;height:100%">';
-    if((album.cover||{}).image)content+='<img src="'+esc(album.cover.image)+'" style="width:100%;height:100%;object-fit:cover">';
-    else content+='<div style="height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px"><div style="font-size:52px">📖</div><div class="pf" style="font-size:12px;color:#ff69b4">Álbum</div></div>';
-    content+='</div>';
-  }else if(cur===total-1){
-    isSingle=true; label='Contraportada';
-    content='<div style="position:relative;width:100%;height:100%">';
-    if((album.back||{}).image)content+='<img src="'+esc(album.back.image)+'" style="width:100%;height:100%;object-fit:cover">';
-    else content+='<div style="height:100%;display:flex;align-items:center;justify-content:center"><div class="pf" style="font-size:9px;color:#555">Contraportada</div></div>';
-    content+='</div>';
-  }else{
-    const si=cur-1;
-    const left=pages[si*2]||null, right=pages[si*2+1]||null;
-    label='Págs. '+(si*2+1)+(right?' y '+(si*2+2):'');
-    content='<div style="display:flex;height:100%;gap:2px">'
-      +pageDiv(left,'left')
-      +(right?pageDiv(right,'right'):'<div style="flex:1;background:#07070f;border-radius:0 7px 7px 0;display:flex;align-items:center;justify-content:center"><div class="pf" style="font-size:7px;color:#222">—</div></div>')
-      +'</div>';
+  function pageContent(page){
+    let c='';
+    if(page&&page.image)c='<img src="'+esc(page.image)+'" style="width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0">';
+    if(page)toArr(page.slots||[]).forEach(function(slot){c+=slotDiv(page,slot);});
+    return'<div style="flex:1;position:relative;height:100%;overflow:hidden">'+c+'</div>';
   }
 
-  const containerAR=isSingle?'3/4':'6/4';
-  const containerW=isSingle?'58%':'calc(100% - 44px)';
+  // Build all positions
+  let posHTML='';
+  for(let pos=0;pos<total;pos++){
+    const isCurrentPos=(pos===cur);
+    let content='';
+    const isSingle=pos===0||pos===total-1;
+    if(pos===0){
+      const img=(album.cover||{}).image;
+      content='<div style="width:100%;height:100%;position:relative">'
+        +(img?'<img src="'+esc(img)+'" style="width:100%;height:100%;object-fit:cover">'
+          :'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px"><div style="font-size:52px">📖</div><div class="pf" style="font-size:12px;color:#ff69b4">Álbum</div></div>')
+        +'</div>';
+    }else if(pos===total-1){
+      const img=(album.back||{}).image;
+      content='<div style="width:100%;height:100%;position:relative">'
+        +(img?'<img src="'+esc(img)+'" style="width:100%;height:100%;object-fit:cover">'
+          :'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center"><div class="pf" style="font-size:9px;color:#555">Contraportada</div></div>')
+        +'</div>';
+    }else{
+      const si=pos-1;
+      const lp=pages[si*2]||null, rp=pages[si*2+1]||null;
+      content=pageContent(lp)
+        +(rp?pageContent(rp):'<div style="flex:1;background:#07070f"></div>');
+    }
+    const ar=isSingle?'3/4':'6/4';
+    const w=isSingle?'65%':'100%';
+    const margin=isSingle?'0 auto':'0 4px';
+    posHTML+='<div class="alb-pos" data-pos="'+pos+'" style="display:'+(isCurrentPos?'flex':'none')+';width:'+w+';margin:'+margin+';aspect-ratio:'+ar+';background:#0d0618;border-radius:10px;border:2px solid #ff69b433;overflow:hidden;box-shadow:0 8px 32px #000a">'+content+'</div>';
+  }
 
-  // Album label
-  let html='<div id="album-root" style="max-width:600px;margin:0 auto">';
-  html+='<div style="text-align:center;padding:5px 10px;background:#ff69b411;border:1px solid #ff69b433;border-radius:8px;margin-bottom:8px">';
-  html+='<span class="pf" style="font-size:6px;color:#ff69b4">📱 Gira el móvil para mejor experiencia</span></div>';
-  html+='<div style="text-align:center;margin-bottom:6px"><span class="pf" style="font-size:6px;color:#555">'+label+'</span></div>';
+  // Label
+  let label='';
+  if(cur===0)label='Portada';
+  else if(cur===total-1)label='Contraportada';
+  else{const si=cur-1;label='Págs. '+(si*2+1)+(pages[si*2+1]?' y '+(si*2+2):'');}
 
-  // Wrapper: arrows float on sides, album in center
-  html+='<div style="position:relative;display:flex;align-items:center;gap:0">';
-
-  // Left arrow (always takes space, invisible if disabled)
-  html+='<button onclick="doFlipPage(\'prev\')" '+(canPrev?'':'disabled')+' style="flex-shrink:0;width:38px;height:38px;border:none;border-radius:50%;font-size:20px;cursor:'+(canPrev?'pointer':'default')+';color:white;background:'+(canPrev?'linear-gradient(135deg,#c084fc,#ff69b4)':'#333')+';opacity:'+(canPrev?'1':'0.3')+'">◀</button>';
-
-  // Album
-  html+='<div style="flex:1;aspect-ratio:'+containerAR+';background:#0d0618;border-radius:10px;border:2px solid #ff69b433;overflow:hidden;box-shadow:0 8px 32px #000a;position:relative;margin:0 4px">'+content+'</div>';
-
-  // Right arrow
-  html+='<button onclick="doFlipPage(\'next\')" '+(canNext?'':'disabled')+' style="flex-shrink:0;width:38px;height:38px;border:none;border-radius:50%;font-size:20px;cursor:'+(canNext?'pointer':'default')+';color:white;background:'+(canNext?'linear-gradient(135deg,#ff69b4,#c084fc)':'#333')+';opacity:'+(canNext?'1':'0.3')+'">▶</button>';
-
+  let html='<div id="album-root" style="max-width:620px;margin:0 auto">';
+  html+='<div style="text-align:center;padding:4px 10px;background:#ff69b411;border:1px solid #ff69b433;border-radius:8px;margin-bottom:8px"><span class="pf" style="font-size:6px;color:#ff69b4">📱 Mejor en horizontal</span></div>';
+  html+='<div id="alb-label" style="text-align:center;margin-bottom:6px"><span class="pf" style="font-size:6px;color:#555">'+label+'</span></div>';
+  html+='<div style="display:flex;align-items:center">';
+  html+='<button id="alb-prev" onclick="doFlipPage(\'prev\')" '+(canPrev?'':'disabled')+' style="flex-shrink:0;width:38px;height:38px;border:none;border-radius:50%;font-size:20px;cursor:'+(canPrev?'pointer':'default')+';color:white;background:'+(canPrev?'linear-gradient(135deg,#c084fc,#ff69b4)':'#333')+';opacity:'+(canPrev?'1':'0.3')+'">◀</button>';
+  html+='<div style="flex:1">'+posHTML+'</div>';
+  html+='<button id="alb-next" onclick="doFlipPage(\'next\')" '+(canNext?'':'disabled')+' style="flex-shrink:0;width:38px;height:38px;border:none;border-radius:50%;font-size:20px;cursor:'+(canNext?'pointer':'default')+';color:white;background:'+(canNext?'linear-gradient(135deg,#ff69b4,#c084fc)':'#333')+';opacity:'+(canNext?'1':'0.3')+'">▶</button>';
+  html+='</div>';
+  html+='<div style="display:flex;justify-content:center;gap:5px;margin-top:10px">';
+  for(let i=0;i<total;i++)html+='<div class="alb-dot" style="width:'+(i===cur?'18px':'7px')+';height:7px;border-radius:4px;background:'+(i===cur?'#ff69b4':'#333')+';transition:all .3s"></div>';
   html+='</div>';
 
-  // Dots
-  html+='<div style="display:flex;justify-content:center;gap:5px;margin-top:10px">';
-  for(let i=0;i<total;i++)html+='<div style="width:'+(i===cur?'18px':'7px')+';height:7px;border-radius:4px;background:'+(i===cur?'#ff69b4':'#333')+';transition:all .3s"></div>';
-  html+='</div></div>';
-
-  // Inspect overlay
   if(S.inspect){
     const c=S.inspect,q=(col[c.id]||0);
     html+='<div class="overlay" onclick="S.inspect=null;render()"><div onclick="event.stopPropagation()" style="display:flex;flex-direction:column;align-items:center;gap:14px;background:#130820;border:2px solid #ff69b433;border-radius:16px;padding:20px;width:calc(100% - 32px);max-width:340px"><div style="transform:scale(1.3);transform-origin:center top;margin-bottom:85px;flex-shrink:0">'+cardHTML(c)+'</div><div class="pf" style="font-size:7px;color:#888">'+q+' en tu colección</div><button class="btn-o" onclick="S.inspect=null;render()" style="width:100%">Cerrar</button></div></div>';
   }
+  html+='</div>';
   return html;
 }
 
