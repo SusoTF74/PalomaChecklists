@@ -892,7 +892,7 @@ function pageAlbum(){
   else{const si=cur-1;label='Págs. '+(si*2+1)+(pages[si*2+1]?' y '+(si*2+2):'');}
 
   let html='<div id="album-root" style="max-width:620px;margin:0 auto">';
-  html+='<div style="text-align:center;padding:4px 10px;background:#ff69b411;border:1px solid #ff69b433;border-radius:8px;margin-bottom:8px"><span class="pf" style="font-size:6px;color:#ff69b4">📱 Mejor en horizontal</span></div>';
+  html+='<div style="text-align:center;padding:4px 10px;background:#ff69b411;border:1px solid #ff69b433;border-radius:8px;margin-bottom:8px"><span class="pf" style="font-size:6px;color:#ff69b4">📱 Mejor en horizontal</span> <span class="pf" style="font-size:5px;color:#60a5fa;margin-left:8px">v8</span></div>';
   html+='<div id="alb-label" style="text-align:center;margin-bottom:6px"><span class="pf" style="font-size:6px;color:#555">'+label+'</span></div>';
   html+='<div style="display:flex;align-items:center">';
   html+='<button id="alb-prev" onclick="doFlipPage(\'prev\')" '+(canPrev?'':'disabled')+' style="flex-shrink:0;width:38px;height:38px;border:none;border-radius:50%;font-size:20px;cursor:'+(canPrev?'pointer':'default')+';color:white;background:'+(canPrev?'linear-gradient(135deg,#c084fc,#ff69b4)':'#333')+';opacity:'+(canPrev?'1':'0.3')+'">◀</button>';
