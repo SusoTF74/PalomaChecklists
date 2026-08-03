@@ -23,7 +23,7 @@ html,body{min-height:100%;background:#0d0618;font-family:system-ui,sans-serif;co
 @keyframes lp{0%,100%{border-color:#ff0055;box-shadow:0 0 18px #ff005566}16%{border-color:#ff8c00;box-shadow:0 0 18px #ff8c0066}33%{border-color:#ffd700;box-shadow:0 0 18px #ffd70066}50%{border-color:#00ff88;box-shadow:0 0 18px #00ff8866}66%{border-color:#0099ff;box-shadow:0 0 18px #0099ff66}83%{border-color:#cc00ff;box-shadow:0 0 18px #cc00ff66}}
 @keyframes fly{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 @keyframes flipIn{from{transform:rotateY(90deg);opacity:0}to{transform:rotateY(0);opacity:1}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}@keyframes albPageIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}@keyframes stickPulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.25)}}@keyframes stickCard{0%{transform:scale(.4) rotate(-12deg);opacity:0}60%{transform:scale(1.08) rotate(1deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}@keyframes flipFromRight{0%{transform:perspective(800px) rotateY(55deg);opacity:.2}100%{transform:perspective(800px) rotateY(0deg);opacity:1}}@keyframes flipFromLeft{0%{transform:perspective(800px) rotateY(-55deg);opacity:.2}100%{transform:perspective(800px) rotateY(0deg);opacity:1}}@keyframes stickPulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.25)}}@keyframes stickCard{0%{transform:scale(.4) rotate(-12deg);opacity:0}60%{transform:scale(1.08) rotate(1deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes floatUp{0%{opacity:1;transform:translateY(0)}70%{opacity:1}100%{opacity:0;transform:translateY(-65px)}}
 @keyframes levelUpAnim{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.25)}55%{opacity:1;transform:translate(-50%,-65%) scale(1)}100%{opacity:0;transform:translate(-50%,-90%) scale(.85)}}
@@ -719,8 +719,8 @@ function doFlipPage(dir){
     if(pos===nxt){
       el.style.display='flex';
       el.style.animation='none';
-      el.offsetHeight; // force reflow
-      el.style.animation='albPageIn .3s ease-out';
+      el.offsetHeight;
+      el.style.animation=(dir==='next'?'flipFromRight':'flipFromLeft')+' .4s ease-out';
     }else{
       el.style.display='none';
     }
@@ -728,9 +728,11 @@ function doFlipPage(dir){
   // Update label
   const lbl=document.getElementById('alb-label');
   if(lbl){
-    if(nxt===0)lbl.textContent='Portada';
-    else if(nxt===total-1)lbl.textContent='Contraportada';
-    else{const si=nxt-1;lbl.textContent='Págs. '+(si*2+1)+(pages[si*2+1]?' y '+(si*2+2):'');}
+    let lt='';
+    if(nxt===0)lt='Portada';
+    else if(nxt===total-1)lt='Contraportada';
+    else{const si=nxt-1;lt='Págs. '+(si*2+1)+(pages[si*2+1]?' y '+(si*2+2):'');}
+    lbl.innerHTML='<span class="pf" style="font-size:7px;color:#888">'+lt+'</span>';
   }
   // Update arrows
   const pb=document.getElementById('alb-prev'),nb=document.getElementById('alb-next');
@@ -761,8 +763,12 @@ function doStickCard(pageId,slotId){
   // Update just the slot div in-place
   const slotEl=document.getElementById('slot-'+slotId);
   if(slotEl){
-    slotEl.innerHTML='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:1px;box-sizing:border-box">'
-      +'<div style="width:100%;max-height:100%;aspect-ratio:92/135;overflow:hidden;border-radius:4px;box-shadow:0 2px 8px #000a">'+cardHTMLSm(card,0)+'</div>'
+    const _r2=R[card.rarity]||R.comun;
+    const _b2=card.rarity==='legendaria'?'#ff69b4':_r2.b;
+    slotEl.innerHTML='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;border:2px solid '+_b2+';border-radius:4px;overflow:hidden;cursor:pointer;box-sizing:border-box;position:relative;background:#070712">'
+      +(card.image?'<img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px">🎴</div>')
+      +'<div style="position:absolute;top:0;left:0;right:0;background:#000000bb;padding:2px 3px;overflow:hidden"><span class="pf" style="font-size:4px;color:'+_r2.tc+'">'+esc(card.title||'')+'</span></div>'
+      +'<div style="position:absolute;bottom:0;left:0;right:0;background:#000000bb;text-align:center;padding:1px"><span class="pf" style="font-size:3px;color:'+_r2.tc+'">'+_r2.lbl.toUpperCase()+'</span></div>'
       +'</div>';
   }else{
     render();
@@ -853,9 +859,15 @@ function pageAlbum(){
     const canStick=card&&(col[slot.cardId]>0)&&!stuck;
     let inner='';
     if(stuck&&card){
-      inner='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:1px;box-sizing:border-box">'
-        +'<div style="width:100%;max-height:100%;aspect-ratio:92/135;overflow:hidden;border-radius:4px;box-shadow:0 2px 8px #000a">'+cardHTMLSm(card,0)+'</div>'
-        +'</div>';
+      (function(){
+        const _r=R[card.rarity]||R.comun;
+        const _b=card.rarity==='legendaria'?'#ff69b4':_r.b;
+        inner='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;border:2px solid '+_b+';border-radius:4px;overflow:hidden;cursor:pointer;box-sizing:border-box;position:relative;background:#070712">'
+          +(card.image?'<img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px">🎴</div>')
+          +'<div style="position:absolute;top:0;left:0;right:0;background:#000000bb;padding:2px 3px;line-height:1.2;overflow:hidden"><span class="pf" style="font-size:4px;color:'+_r.tc+'">'+esc(card.title||'')+'</span></div>'
+          +'<div style="position:absolute;bottom:0;left:0;right:0;background:#000000bb;text-align:center;padding:1px"><span class="pf" style="font-size:3px;color:'+_r.tc+'">'+_r.lbl.toUpperCase()+'</span></div>'
+          +'</div>';
+      })();
     }else if(canStick){
       inner='<div style="width:100%;height:100%;border:2px dashed #ff69b466;border-radius:4px;background:#0d060eaa;display:flex;align-items:center;justify-content:center">'
         +'<button onclick="doStickCard(\''+page.id+'\',\''+slot.id+'\')" style="width:30px;height:30px;border:none;border-radius:50%;background:linear-gradient(135deg,#ff69b4,#c084fc);font-size:18px;font-weight:bold;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center;padding:0;animation:stickPulse 1s ease-in-out infinite">+</button>'
@@ -910,8 +922,8 @@ function pageAlbum(){
   else{const si=cur-1;label='Págs. '+(si*2+1)+(pages[si*2+1]?' y '+(si*2+2):'');}
 
   let html='<div id="album-root" style="max-width:620px;margin:0 auto">';
-  html+='<div style="text-align:center;padding:4px 10px;background:#ff69b411;border:1px solid #ff69b433;border-radius:8px;margin-bottom:8px"><span class="pf" style="font-size:6px;color:#ff69b4">📱 Mejor en horizontal</span> <span class="pf" style="font-size:5px;color:#60a5fa;margin-left:8px">v8</span></div>';
-  html+='<div id="alb-label" style="text-align:center;margin-bottom:6px"><span class="pf" style="font-size:6px;color:#555">'+label+'</span></div>';
+  html+='<div style="text-align:center;padding:4px 10px;background:#ff69b411;border:1px solid #ff69b433;border-radius:8px;margin-bottom:8px"><span class="pf" style="font-size:6px;color:#ff69b4">📱 Mejor en horizontal</span></div>';
+  html+='<div id="alb-label" style="text-align:center;margin-bottom:6px"><span class="pf" style="font-size:7px;color:#888">'+label+'</span></div>';
   html+='<div style="display:flex;align-items:center">';
   html+='<button id="alb-prev" onclick="doFlipPage(\'prev\')" '+(canPrev?'':'disabled')+' style="flex-shrink:0;width:38px;height:38px;border:none;border-radius:50%;font-size:20px;cursor:'+(canPrev?'pointer':'default')+';color:white;background:'+(canPrev?'linear-gradient(135deg,#c084fc,#ff69b4)':'#333')+';opacity:'+(canPrev?'1':'0.3')+'">◀</button>';
   html+='<div style="flex:1">'+posHTML+'</div>';
