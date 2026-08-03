@@ -765,11 +765,13 @@ function doStickCard(pageId,slotId){
   if(slotEl){
     const _r2=R[card.rarity]||R.comun;
     const _b2=card.rarity==='legendaria'?'#ff69b4':_r2.b;
-    slotEl.innerHTML='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;border:2px solid '+_b2+';border-radius:4px;overflow:hidden;cursor:pointer;box-sizing:border-box;position:relative;background:#070712">'
-      +(card.image?'<img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px">🎴</div>')
-      +'<div style="position:absolute;top:0;left:0;right:0;background:#000000bb;padding:2px 3px;overflow:hidden"><span class="pf" style="font-size:4px;color:'+_r2.tc+'">'+esc(card.title||'')+'</span></div>'
-      +'<div style="position:absolute;bottom:0;left:0;right:0;background:#000000bb;text-align:center;padding:1px"><span class="pf" style="font-size:3px;color:'+_r2.tc+'">'+_r2.lbl.toUpperCase()+'</span></div>'
-      +'</div>';
+    const _bg2={comun:'#1a1a2e',poco_comun:'#051828',rara:'#041a08',epica:'#1a0530',legendaria:'#1a0e00',evento:'#2a0520'}[card.rarity]||'#130820';
+    slotEl.innerHTML='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;">'
+      +'<div style="width:100%;aspect-ratio:92/138;max-height:100%;position:relative;border:2px solid '+_b2+';border-radius:4px;overflow:hidden;background:'+_bg2+';flex-shrink:0;">'
+      +(card.image?'<img src="'+esc(card.image)+'" style="position:absolute;top:18%;left:0;width:100%;height:64%;object-fit:cover">':'')
+      +'<div style="position:absolute;top:0;left:0;right:0;padding:2px 3px;text-align:center;background:'+_bg2+';overflow:hidden;white-space:nowrap;text-overflow:ellipsis;"><span class="pf" style="font-size:max(3px,1vw);color:'+_r2.tc+'">'+esc(card.title||'')+'</span></div>'
+      +'<div style="position:absolute;bottom:0;left:0;right:0;padding:2px;text-align:center;background:'+_bg2+';"><span class="pf" style="font-size:max(2px,.8vw);color:'+_r2.tc+'">'+_r2.lbl.toUpperCase()+'</span></div>'
+      +'</div></div>';
   }else{
     render();
   }
@@ -862,11 +864,17 @@ function pageAlbum(){
       (function(){
         const _r=R[card.rarity]||R.comun;
         const _b=card.rarity==='legendaria'?'#ff69b4':_r.b;
-        inner='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;border:2px solid '+_b+';border-radius:4px;overflow:hidden;cursor:pointer;box-sizing:border-box;position:relative;background:#070712">'
-          +(card.image?'<img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px">🎴</div>')
-          +'<div style="position:absolute;top:0;left:0;right:0;background:#000000bb;padding:2px 3px;line-height:1.2;overflow:hidden"><span class="pf" style="font-size:4px;color:'+_r.tc+'">'+esc(card.title||'')+'</span></div>'
-          +'<div style="position:absolute;bottom:0;left:0;right:0;background:#000000bb;text-align:center;padding:1px"><span class="pf" style="font-size:3px;color:'+_r.tc+'">'+_r.lbl.toUpperCase()+'</span></div>'
-          +'</div>';
+        const bgMap={comun:'#1a1a2e',poco_comun:'#051828',rara:'#041a08',epica:'#1a0530',legendaria:'#1a0e00',evento:'#2a0520'};
+        const _bg=bgMap[card.rarity]||'#130820';
+        inner='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" '
+          +'style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;">'
+          +'<div style="width:100%;aspect-ratio:92/138;max-height:100%;position:relative;border:2px solid '+_b+';border-radius:4px;overflow:hidden;background:'+_bg+';flex-shrink:0;">'
+          +(card.image?'<img src="'+esc(card.image)+'" style="position:absolute;top:18%;left:0;width:100%;height:64%;object-fit:cover">':'')
+          +'<div style="position:absolute;top:0;left:0;right:0;padding:2px 3px;text-align:center;background:'+_bg+';overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">'
+          +'<span class="pf" style="font-size:max(3px,1vw);color:'+_r.tc+'">'+esc(card.title||'')+'</span></div>'
+          +'<div style="position:absolute;bottom:0;left:0;right:0;padding:2px;text-align:center;background:'+_bg+';">'
+          +'<span class="pf" style="font-size:max(2px,.8vw);color:'+_r.tc+'">'+_r.lbl.toUpperCase()+'</span></div>'
+          +'</div></div>';
       })();
     }else if(canStick){
       inner='<div style="width:100%;height:100%;border:2px dashed #ff69b466;border-radius:4px;background:#0d060eaa;display:flex;align-items:center;justify-content:center">'
