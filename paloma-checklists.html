@@ -54,6 +54,26 @@ select.inp{cursor:pointer}textarea.inp{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
+function imgErr(el){
+  try{
+    el.onerror=null;
+    const retries=+(el.dataset.r||0);
+    if(retries<2){
+      el.dataset.r=retries+1;
+      setTimeout(function(){
+        el.onerror=function(){imgErr(el);};
+        el.src=el.src.split('?')[0]+'?r='+Date.now();
+      },1500*(retries+1));
+    }else{
+      el.style.display='none';
+      var ph=document.createElement('div');
+      ph.style.cssText='width:100%;height:100%;min-width:24px;min-height:24px;background:#1a0a2e;display:flex;align-items:center;justify-content:center;font-size:20px;border-radius:4px;flex-shrink:0';
+      ph.textContent='\uD83C\uDCB4';
+      if(el.parentNode)el.parentNode.insertBefore(ph,el);
+    }
+  }catch(e){}
+}
+
 // ─── FIREBASE CONFIG ───────────────────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyAcB5AxH1ggbDDsV_5o9SBR8ZWWgsE03h8",
@@ -402,7 +422,7 @@ function cardHTML(card,qty,sm,flip){
   const cls=(leg?'legend-card ':'')+(flip?'flip-in ':'');
   const icon=leg?'⭐':card.rarity==='epica'?'💜':card.rarity==='rara'?'💚':card.rarity==='poco_comun'?'💙':'⬜';
   const qb=qty>1?'<div style="position:absolute;top:-8px;right:-8px;background:#ff69b4;border-radius:50%;width:19px;height:19px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;color:white;z-index:2">x'+qty+'</div>':'';
-  const img=card.image?'<img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover;image-rendering:pixelated" onerror="this.style.display=\'none\'">':'<span style="font-size:'+(sm?24:38)+'px;opacity:.35">'+icon+'</span>';
+  const img=card.image?'<img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover;image-rendering:pixelated" onerror="imgErr(this)"none\'">':'<span style="font-size:'+(sm?24:38)+'px;opacity:.35">'+icon+'</span>';
   const desc=sm?'':'<div style="font-size:6px;color:#777;background:#050510;border-radius:4px;padding:5px;line-height:1.7;min-height:36px;font-family:monospace">'+esc(card.description||'Sin descripción')+'</div>';
   return '<div class="'+cls+'" style="width:'+w+'px;flex-shrink:0;border:'+bw+'px solid '+(leg?'#ff69b4':r.b)+';border-radius:8px;background:'+r.bg+';padding:'+(sm?5:9)+'px;position:relative;box-shadow:'+shadow+'">'+qb+'<div class="pf" style="font-size:'+(sm?5:7)+'px;color:'+r.tc+';text-align:center;margin-bottom:'+(sm?3:5)+'px;line-height:1.6;min-height:'+(sm?14:22)+'px;word-break:break-word">'+esc(card.title||'???')+'</div><div style="width:100%;aspect-ratio:1;background:#070712;border-radius:4px;margin-bottom:'+(sm?3:5)+'px;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid '+r.b+'33">'+img+'</div>'+desc+'<div class="pf" style="margin-top:'+(sm?3:5)+'px;text-align:center;font-size:5px;color:'+r.tc+';text-transform:uppercase">'+r.lbl+'</div></div>';
 }
@@ -423,7 +443,7 @@ function cardHTMLSm(card,qty){
   const cls=leg?'legend-card ':'';
   const icon=leg?'⭐':card.rarity==='epica'?'💜':card.rarity==='rara'?'💚':card.rarity==='poco_comun'?'💙':'⬜';
   const qb=qty>1?'<div style="position:absolute;top:-6px;right:-6px;background:#ff69b4;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:bold;color:white;z-index:2">x'+qty+'</div>':'';
-  const imgTag=card.image?('<img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover;image-rendering:pixelated">'):'<span style="font-size:24px;opacity:.35">'+icon+'</span>';
+  const imgTag=card.image?('<img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover;image-rendering:pixelated" onerror="imgErr(this)">'):'<span style="font-size:24px;opacity:.35">'+icon+'</span>';
   return '<div class="'+cls+'" style="width:100%;border:2px solid '+(leg?'#ff69b4':r.b)+';border-radius:8px;background:'+r.bg+';padding:5px;position:relative;box-shadow:'+shadow+'">'+qb
     +'<div class="pf" style="font-size:5px;color:'+r.tc+';text-align:center;margin-bottom:3px;line-height:1.5;min-height:12px;word-break:break-word">'+esc(card.title||'???')+'</div>'
     +'<div style="width:100%;aspect-ratio:1;background:#070712;border-radius:4px;margin-bottom:3px;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid '+r.b+'33">'+imgTag+'</div>'
@@ -635,7 +655,7 @@ function pageOtro(){
   const _totalCards=S.db.cards.length+(S.db.events||[]).length;
   const _oXp=od.xp||0,_oLv=getLevel(_oXp),_oRank=getRank(_oLv);
   const _oRIcon=getRankIcon(_oRank);
-  const _oRankImg=_oRIcon?'<img src="'+esc(_oRIcon)+'" style="width:20px;height:20px;object-fit:contain">'  :'<span style="font-size:16px">'+getRankEmoji(_oRank)+'</span>';
+  const _oRankImg=_oRIcon?'<img src="'+esc(_oRIcon)+'" style="width:20px;height:20px;object-fit:contain" onerror="imgErr(this)">'  :'<span style="font-size:16px">'+getRankEmoji(_oRank)+'</span>';
   const prog=tasks.length?Math.round(done.length/tasks.length*100):0;
   let html='<div style="max-width:580px"><div style="display:flex;gap:7px;margin-bottom:12px">'+checklistModeTabs(otroMode,'otroChecklistMode')+'</div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><div style="display:flex;align-items:center;gap:8px">'+_oRankImg+'<div><div class="pf" style="font-size:11px;color:#ff69b4">💌 '+oName+'</div><div class="pf" style="font-size:6px;color:#60a5fa;margin-top:2px">Nv. '+_oLv+'</div></div></div><div style="text-align:right"><div class="pf" style="font-size:6px;color:#555;margin-bottom:3px">'+_oTimerLbl+'</div><div class="pf '+_oTimerCls+'" style="font-size:10px;color:#fbbf24">'+_oTimer+'</div></div></div>';
 const _oAchs=S.db.achievements||[];
@@ -647,7 +667,7 @@ const _oAchs=S.db.achievements||[];
     const _unlAchs=_oAchs.filter(a=>_oAchAp[a.id]&&_oAchAp[a.id].unlocked);
     html+='<div class="overlay" onclick="S.showOtherAchs=false;render()"><div onclick="event.stopPropagation()" style="background:#130820;border:2px solid #fbbf24;border-radius:16px;padding:20px;max-width:340px;width:100%;max-height:80vh;overflow-y:auto"><div class="pf" style="font-size:9px;color:#fbbf24;margin-bottom:14px">🏆 Logros de '+oName+'</div>';
     if(_unlAchs.length===0){html+='<div class="pf" style="font-size:7px;color:#555;text-align:center;padding:20px 0">Aún no ha desbloqueado logros</div>';}
-    else{html+='<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">';_unlAchs.forEach(a=>{const isM=a.color==='multicolor';html+='<div style="display:flex;flex-direction:column;align-items:center;gap:5px;width:72px"><div style="width:52px;height:52px;border-radius:50%;border:'+(isM?'2px solid #ff69b4':'2px solid '+(a.color||'#fbbf24'))+';overflow:hidden;display:flex;align-items:center;justify-content:center">'+(a.image?'<img src="'+esc(a.image)+'" style="width:100%;height:100%;object-fit:cover">':'<span style="font-size:22px">&#127942;</span>')+'</div><div class="pf" style="font-size:4px;color:#fbbf24;text-align:center;line-height:1.5">'+esc(a.title)+'</div></div>';});html+='</div>';}
+    else{html+='<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">';_unlAchs.forEach(a=>{const isM=a.color==='multicolor';html+='<div style="display:flex;flex-direction:column;align-items:center;gap:5px;width:72px"><div style="width:52px;height:52px;border-radius:50%;border:'+(isM?'2px solid #ff69b4':'2px solid '+(a.color||'#fbbf24'))+';overflow:hidden;display:flex;align-items:center;justify-content:center">'+(a.image?'<img src="'+esc(a.image)+'" style="width:100%;height:100%;object-fit:cover" onerror="imgErr(this)">':'<span style="font-size:22px">&#127942;</span>')+'</div><div class="pf" style="font-size:4px;color:#fbbf24;text-align:center;line-height:1.5">'+esc(a.title)+'</div></div>';});html+='</div>';}
     html+='<button class="btn-o" onclick="S.showOtherAchs=false;render()" style="width:100%;margin-top:14px">Cerrar</button></div></div>';
   }
   if(tasks.length>0){
@@ -892,7 +912,7 @@ function pageAlbum(){
 
   function pageContent(page,side){
     let c='';
-    if(page&&page.image)c='<img src="'+esc(page.image)+'" style="width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0">';
+    if(page&&page.image)c='<img src="'+esc(page.image)+'" style="width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0" onerror="imgErr(this)">';
     if(page)toArr(page.slots||[]).forEach(function(slot){c+=slotDiv(page,slot);});
     // Spine shadow (inner edge) + outer edge shadow
     const spineGrad=side==='left'
@@ -916,13 +936,13 @@ function pageAlbum(){
     if(pos===0){
       const img=(album.cover||{}).image;
       content='<div style="width:100%;height:100%;position:relative">'
-        +(img?'<img src="'+esc(img)+'" style="width:100%;height:100%;object-fit:cover">'
+        +(img?'<img src="'+esc(img)+'" style="width:100%;height:100%;object-fit:cover" onerror="imgErr(this)">'
           :'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px"><div style="font-size:52px">📖</div><div class="pf" style="font-size:12px;color:#ff69b4">Álbum</div></div>')
         +'</div>';
     }else if(pos===total-1){
       const img=(album.back||{}).image;
       content='<div style="width:100%;height:100%;position:relative">'
-        +(img?'<img src="'+esc(img)+'" style="width:100%;height:100%;object-fit:cover">'
+        +(img?'<img src="'+esc(img)+'" style="width:100%;height:100%;object-fit:cover" onerror="imgErr(this)">'
           :'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center"><div class="pf" style="font-size:9px;color:#555">Contraportada</div></div>')
         +'</div>';
     }else{
@@ -971,7 +991,7 @@ function pageMain(){
   const _xpInLv=_xp-xpToReachLevel(_lv),_xpNeed=xpForNextLevel(_lv);
   const _xpPct=Math.min(100,Math.round(_xpInLv/_xpNeed*100));
   const _rIcon=getRankIcon(_rank);
-  const _rankImg=_rIcon?'<img src="'+esc(_rIcon)+'" style="width:20px;height:20px;object-fit:contain;flex-shrink:0">'
+  const _rankImg=_rIcon?'<img src="'+esc(_rIcon)+'" style="width:20px;height:20px;object-fit:contain;flex-shrink:0" onerror="imgErr(this)">'
     :'<span style="font-size:16px;flex-shrink:0">'+getRankEmoji(_rank)+'</span>';
   const _xpBar='<div style="display:flex;align-items:center;gap:5px">'+_rankImg
     +'<div><div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">'
@@ -1027,7 +1047,7 @@ function pageEventos(){
     const diff=Math.max(0,evt.endDate-now);
     const dd=Math.floor(diff/86400000),hh=Math.floor((diff%86400000)/3600000),mm=Math.floor((diff%3600000)/60000),ss=Math.floor((diff%60000)/1000);
     html+='<div style="background:#130820;border:2px solid #ff69b433;border-radius:16px;overflow:hidden;margin-bottom:24px">';
-    if(evt.image)html+='<img src="'+esc(evt.image)+'" style="width:100%;height:160px;object-fit:cover" onerror="this.style.display=\'none\'">';
+    if(evt.image)html+='<img src="'+esc(evt.image)+'" style="width:100%;height:160px;object-fit:cover" onerror="imgErr(this)"none\'">';
     html+='<div style="padding:16px">';
     html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px"><div class="pf" style="font-size:11px;color:#ff69b4">'+esc(evt.title)+'</div><div class="pf evt-countdown" data-end="'+evt.endDate+'" style="font-size:6px;color:#fbbf24;text-align:right;flex-shrink:0;margin-left:8px">'+dd+'d '+hh+'h '+mm+'m '+ss+'s</div></div>';
     if(evt.description)html+='<div style="font-size:12px;color:#a0a0c0;margin-bottom:14px;line-height:1.6">'+esc(evt.description)+'</div>';
@@ -1245,8 +1265,8 @@ function pageLogros(){
       const inspID=JSON.stringify(ach.id).replace(/"/g,'&quot;');
       html+='<div onclick="S.inspectAch='+inspID+';render()" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;width:84px">';
       html+='<div style="width:68px;height:68px;border-radius:50%;position:relative;'+achBorderStyle(ach.color,ach.glow)+';background:#130820;display:flex;align-items:center;justify-content:center;overflow:hidden;'+(done?'':'opacity:.5')+'">';
-      if(done&&ach.image)html+='<img src="'+esc(ach.image)+'" style="width:100%;height:100%;object-fit:cover">';
-      else{if(!done&&_lockImg)html+='<img src="'+esc(_lockImg)+'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.35">';html+='<span style="font-size:26px;position:relative;z-index:1">'+(done?'&#127942;':'&#128274;')+'</span>';}
+      if(done&&ach.image)html+='<img src="'+esc(ach.image)+'" style="width:100%;height:100%;object-fit:cover" onerror="imgErr(this)">';
+      else{if(!done&&_lockImg)html+='<img src="'+esc(_lockImg)+'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.35" onerror="imgErr(this)">';html+='<span style="font-size:26px;position:relative;z-index:1">'+(done?'&#127942;':'&#128274;')+'</span>';}
       html+='</div>';
       html+='<div class="pf" style="font-size:5px;color:'+(done?'#fbbf24':'#555')+';text-align:center;line-height:1.6;word-break:break-word">'+esc(ach.title)+'</div>';
       html+='<div class="pf" style="font-size:5px;color:#666">'+Math.min(cur,ach.required)+'/'+ach.required+'</div>';
@@ -1263,8 +1283,8 @@ function pageLogros(){
       const done=prog.unlocked;
       html+='<div class="overlay" onclick="S.inspectAch=null;render()"><div onclick="event.stopPropagation()" style="background:#130820;border:2px solid #fbbf24;border-radius:16px;padding:24px;max-width:300px;width:100%;display:flex;flex-direction:column;align-items:center;gap:12px">';
       html+='<div style="width:100px;height:100px;border-radius:50%;position:relative;'+achBorderStyle(ach.color,ach.glow)+';overflow:hidden;display:flex;align-items:center;justify-content:center">';
-      if(ach.image&&done)html+='<img src="'+esc(ach.image)+'" style="width:100%;height:100%;object-fit:cover">';
-      else{if(!done&&_lockImg)html+='<img src="'+esc(_lockImg)+'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.35">';html+='<span style="font-size:44px;position:relative;z-index:1">'+(done?'&#127942;':'&#128274;')+'</span>';}
+      if(ach.image&&done)html+='<img src="'+esc(ach.image)+'" style="width:100%;height:100%;object-fit:cover" onerror="imgErr(this)">';
+      else{if(!done&&_lockImg)html+='<img src="'+esc(_lockImg)+'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.35" onerror="imgErr(this)">';html+='<span style="font-size:44px;position:relative;z-index:1">'+(done?'&#127942;':'&#128274;')+'</span>';}
       html+='</div>';
       html+='<div class="pf" style="font-size:9px;color:#fbbf24;text-align:center">'+esc(ach.title)+'</div>';
       html+='<div style="font-size:12px;color:#a0a0c0;text-align:center;line-height:1.6">'+esc(ach.description||'')+'</div>';
@@ -1409,7 +1429,7 @@ function pageAdmin(){
     html+='<div style="margin-bottom:16px"><div class="pf" style="font-size:7px;color:'+R[rar].tc+';margin-bottom:8px">'+R[rar].lbl+' ('+cards.length+')</div>';
     cards.forEach(c=>{
       html+='<div style="background:#130820;border:1px solid '+R[c.rarity].b+'44;border-radius:10px;padding:9px 11px;display:flex;align-items:center;gap:9px;margin-bottom:5px">'
-        +(c.image?'<img src="'+esc(c.image)+'" style="width:34px;height:34px;object-fit:cover;border-radius:4px;flex-shrink:0" onerror="this.style.display=\'none\'">':'<div style="width:34px;height:34px;background:#07070f;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🃏</div>')
+        +(c.image?'<img src="'+esc(c.image)+'" style="width:34px;height:34px;object-fit:cover;border-radius:4px;flex-shrink:0" onerror="imgErr(this)"none\'">':'<div style="width:34px;height:34px;background:#07070f;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🃏</div>')
         +'<div style="flex:1;min-width:0"><div class="pf" style="font-size:7px;color:#f0d6ff;margin-bottom:2px">'+esc(c.title)+'</div>'+(c.description?'<div style="font-size:11px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c.description)+'</div>':'')+'</div>'
         +'<div style="display:flex;gap:5px;flex-shrink:0"><button onclick="doAdminEdit(\''+c.id+'\')" style="background:none;border:1px solid #4ade8033;border-radius:6px;color:#4ade80;cursor:pointer;padding:4px 7px;font-size:12px">✏️</button><button onclick="doAdminDelete(\''+c.id+'\')" style="background:none;border:1px solid #f8717133;border-radius:6px;color:#f87171;cursor:pointer;padding:4px 7px;font-size:12px">🗑️</button></div></div>';
     });
@@ -1419,7 +1439,7 @@ function pageAdmin(){
   // Rank icons
   const snds=S.db.sounds||{};
   let rankRows='';
-  RANK_DEFS.forEach(([k,l])=>{rankRows+='<div style="margin-bottom:10px"><div class="pf" style="font-size:6px;color:#60a5fa;margin-bottom:4px">'+l+'</div><div style="display:flex;gap:6px;align-items:center"><input class="inp" id="snd-'+k+'" style="font-size:11px" placeholder="URL imagen" value="'+esc(snds[k]||'')+'">'+(snds[k]?'<img src="'+esc(snds[k])+'" style="width:32px;height:32px;object-fit:contain;border-radius:4px;flex-shrink:0">':'')+'</div></div>';});
+  RANK_DEFS.forEach(([k,l])=>{rankRows+='<div style="margin-bottom:10px"><div class="pf" style="font-size:6px;color:#60a5fa;margin-bottom:4px">'+l+'</div><div style="display:flex;gap:6px;align-items:center"><input class="inp" id="snd-'+k+'" style="font-size:11px" placeholder="URL imagen" value="'+esc(snds[k]||'')+'">'+(snds[k]?'<img src="'+esc(snds[k])+'" style="width:32px;height:32px;object-fit:contain;border-radius:4px;flex-shrink:0" onerror="imgErr(this)">':'')+'</div></div>';});
   html+='<div style="background:#130820;border:1px solid #60a5fa33;border-radius:12px;padding:16px;margin-bottom:18px"><div class="pf" style="font-size:8px;color:#60a5fa;margin-bottom:4px">✨ Iconos de Rango</div>'+rankRows+'<button class="btn" onclick="doSaveSounds()" style="width:100%;margin-top:4px;background:linear-gradient(135deg,#1d4ed8,#3b82f6)">Guardar iconos</button></div>';
   // Sounds
   let soundRows='';
@@ -1501,7 +1521,7 @@ function pageAdmin(){
       catA.forEach(function(a){
         html+='<div style="display:flex;align-items:center;gap:8px;background:#07070f;border-radius:8px;padding:8px 10px;margin-bottom:5px">'
           +'<div style="width:28px;height:28px;border-radius:50%;border:'+(a.color==='multicolor'?'2px solid #ff69b4':'2px solid '+(a.color||'#fbbf24'))+';flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center">'
-          +(a.image?'<img src="'+esc(a.image)+'" style="width:100%;height:100%;object-fit:cover">':'<span style="font-size:14px">🏆</span>')+'</div>'
+          +(a.image?'<img src="'+esc(a.image)+'" style="width:100%;height:100%;object-fit:cover" onerror="imgErr(this)">':'<span style="font-size:14px">🏆</span>')+'</div>'
           +'<div style="flex:1"><div class="pf" style="font-size:6px;color:#f0d6ff;margin-bottom:1px">'+esc(a.title)+'</div><div class="pf" style="font-size:5px;color:#666">'+_achCL[a.category]+' · '+a.required+'</div></div>'
           +'<button onclick="doEditAchievement(\''+a.id+'\')" style="background:none;border:1px solid #4ade8033;border-radius:5px;color:#4ade80;cursor:pointer;padding:3px 7px;font-size:11px">✏️</button>'
           +'<button onclick="doDeleteAchievement(\''+a.id+'\')" style="background:none;border:1px solid #f8717133;border-radius:5px;color:#f87171;cursor:pointer;padding:3px 7px;font-size:11px">🗑️</button></div>';
@@ -1535,7 +1555,7 @@ function pageAdmin(){
       const isEditing=S.editSlotPage===page.id;
       html+='<div style="background:#07070f;border-radius:8px;margin-bottom:6px;overflow:hidden">'
         +'<div style="display:flex;align-items:center;gap:8px;padding:8px 10px">'
-        +(page.image?'<img src="'+esc(page.image)+'" style="width:32px;height:44px;object-fit:cover;border-radius:3px;flex-shrink:0">':'')
+        +(page.image?'<img src="'+esc(page.image)+'" style="width:32px;height:44px;object-fit:cover;border-radius:3px;flex-shrink:0" onerror="imgErr(this)">':'')
         +'<div style="flex:1"><div class="pf" style="font-size:6px;color:#f0d6ff">Pág. '+(idx+1)+'</div><div class="pf" style="font-size:5px;color:#666;margin-top:2px">'+slots+' hueco'+(slots!==1?'s':'')+'</div></div>'
         +'<button onclick="doMoveAlbumPage(\''+page.id+'\',\'up\')" '+(idx===0?'disabled':'')+' style="background:none;border:1px solid #60a5fa33;border-radius:4px;color:#60a5fa;cursor:pointer;padding:2px 6px;font-size:11px">↑</button>'
         +'<button onclick="doMoveAlbumPage(\''+page.id+'\',\'down\')" '+(idx===_albPages.length-1?'disabled':'')+' style="background:none;border:1px solid #60a5fa33;border-radius:4px;color:#60a5fa;cursor:pointer;padding:2px 6px;font-size:11px">↓</button>'
@@ -1546,7 +1566,7 @@ function pageAdmin(){
         html+='<div style="padding:10px;border-top:1px solid #ffffff11">'
           +'<div class="pf" style="font-size:6px;color:#888;margin-bottom:8px">Toca en la imagen para añadir un hueco · Arrastra para reposicionar</div>'
           +'<div id="alb-ed-'+page.id+'" onclick="doAddSlotClick(\''+page.id+'\',event)" style="position:relative;width:100%;cursor:crosshair;border-radius:6px;overflow:hidden;border:1px solid #60a5fa33">';
-        if(page.image)html+='<img src="'+esc(page.image)+'" style="width:100%;display:block;pointer-events:none">';
+        if(page.image)html+='<img src="'+esc(page.image)+'" style="width:100%;display:block;pointer-events:none" onerror="imgErr(this)">';
         else html+='<div style="background:#07070f;height:180px;display:flex;align-items:center;justify-content:center"><span class="pf" style="font-size:7px;color:#555">Sin imagen</span></div>';
         (page.slots||[]).forEach(function(slot,si){
           html+='<div id="slotadm-'+slot.id+'" onmousedown="startSlotDrag(\''+page.id+'\',\''+slot.id+'\',event)" ontouchstart="startSlotDrag(\''+page.id+'\',\''+slot.id+'\',event)" onclick="event.stopPropagation()" style="position:absolute;left:'+slot.x+'%;top:'+slot.y+'%;width:'+slot.w+'%;height:'+slot.h+'%;border:2px solid #4ade80;background:#4ade8022;border-radius:3px;box-sizing:border-box;cursor:grab;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:2px">'
@@ -1588,7 +1608,7 @@ function miniCardHTML(card){
   let h='<div style="width:100%;height:100%;display:flex;flex-direction:column;background:'+bg+';border:2px solid '+(leg?'#ff69b4':r.b)+';border-radius:3px;overflow:hidden;box-sizing:border-box">';
   h+='<div class="pf" style="font-size:4.5px;color:'+r.tc+';text-align:center;padding:2px 3px;line-height:1.4;background:#00000044;flex-shrink:0">'+esc(card.title||'')+'</div>';
   h+='<div style="flex:1;overflow:hidden;min-height:0">';
-  if(card.image)h+='<img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover">';
+  if(card.image)h+='<img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover" onerror="imgErr(this)">';
   else h+='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px">🎴</div>';
   h+='</div>';
   h+='<div class="pf" style="font-size:4px;color:'+r.tc+';text-align:center;padding:2px;background:#00000066;flex-shrink:0">'+r.lbl.toUpperCase()+'</div>';
