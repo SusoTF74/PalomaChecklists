@@ -789,7 +789,7 @@ function pageAlbum(){
   const col=ud().col||{};
   const stickers=ud().albumStickers||{};
   const numSpreads=Math.ceil(pages.length/2);
-  const total=2+numSpreads; // 0=portada, 1..n=spreads, last=contraportada
+  const total=2+numSpreads;
   const cur=S.albumPage||0;
   const canPrev=cur>0, canNext=cur<total-1;
 
@@ -801,14 +801,9 @@ function pageAlbum(){
       const canStick=card&&(col[slot.cardId]>0)&&!stuck;
       let inner='';
       if(stuck&&card){
-        // container-type on outer div so cqw = slot width
-        inner='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;border-radius:3px;overflow:hidden;cursor:pointer;box-shadow:0 2px 8px #0009;position:relative;container-type:inline-size">'
-          +'<div style="position:absolute;top:0;left:0;width:92px;transform-origin:top left;transform:scale(calc(100cqw / 92))">'
-          +cardHTMLSm(card,0)
-          +'</div></div>';
+        inner='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;border-radius:3px;overflow:hidden;cursor:pointer;box-shadow:0 2px 8px #0009">'+miniCardHTML(card)+'</div>';
       }else if(canStick){
-        inner='<div style="width:100%;height:100%;border:2px dashed #ff69b455;border-radius:3px;background:#0d060eaa;position:relative;display:flex;align-items:center;justify-content:center">'
-          +'<span style="font-size:14px;opacity:.2;filter:grayscale(1)">❓</span>'
+        inner='<div style="width:100%;height:100%;border:2px dashed #ff69b466;border-radius:3px;background:#0d060eaa;position:relative;display:flex;align-items:center;justify-content:center">'
           +'<button onclick="doStickCard(\''+page.id+'\',\''+slot.id+'\')" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,#ff69b4,#c084fc);border:none;border-radius:50%;width:22px;height:22px;font-size:15px;font-weight:bold;cursor:pointer;color:white;animation:stickPulse 1s ease-in-out infinite;display:flex;align-items:center;justify-content:center;padding:0">+</button>'
           +'</div>';
       }else{
@@ -826,51 +821,57 @@ function pageAlbum(){
     return'<div style="flex:1;position:relative;overflow:hidden;border-radius:'+radius+'">'+inner+'</div>';
   }
 
-  let content='', isSingle=false;
-  let label='';
+  let content='', isSingle=false, label='';
 
   if(cur===0){
-    isSingle=true;
-    label='Portada';
+    isSingle=true; label='Portada';
     content='<div style="position:relative;width:100%;height:100%">';
     if((album.cover||{}).image)content+='<img src="'+esc(album.cover.image)+'" style="width:100%;height:100%;object-fit:cover">';
     else content+='<div style="height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px"><div style="font-size:52px">📖</div><div class="pf" style="font-size:12px;color:#ff69b4">Álbum</div></div>';
     content+='</div>';
   }else if(cur===total-1){
-    isSingle=true;
-    label='Contraportada';
+    isSingle=true; label='Contraportada';
     content='<div style="position:relative;width:100%;height:100%">';
     if((album.back||{}).image)content+='<img src="'+esc(album.back.image)+'" style="width:100%;height:100%;object-fit:cover">';
     else content+='<div style="height:100%;display:flex;align-items:center;justify-content:center"><div class="pf" style="font-size:9px;color:#555">Contraportada</div></div>';
     content+='</div>';
   }else{
-    const si=cur-1; // spread index 0-based
-    const left=pages[si*2]||null;
-    const right=pages[si*2+1]||null;
-    const ln=si*2+1, rn=si*2+2;
-    label='Págs. '+ln+(right?' y '+rn:'');
+    const si=cur-1;
+    const left=pages[si*2]||null, right=pages[si*2+1]||null;
+    label='Págs. '+(si*2+1)+(right?' y '+(si*2+2):'');
     content='<div style="display:flex;height:100%;gap:2px">'
       +pageDiv(left,'left')
       +(right?pageDiv(right,'right'):'<div style="flex:1;background:#07070f;border-radius:0 7px 7px 0;display:flex;align-items:center;justify-content:center"><div class="pf" style="font-size:7px;color:#222">—</div></div>')
       +'</div>';
   }
 
-  const containerStyle=isSingle
-    ?'width:58%;margin:0 auto;aspect-ratio:3/4'
-    :'width:100%;aspect-ratio:6/4';
+  const containerAR=isSingle?'3/4':'6/4';
+  const containerW=isSingle?'58%':'calc(100% - 44px)';
 
+  // Album label
   let html='<div style="max-width:600px;margin:0 auto">';
-  html+='<div style="text-align:center;margin-bottom:8px"><span class="pf" style="font-size:6px;color:#555">'+label+'</span></div>';
-  html+='<div style="'+containerStyle+';background:#0d0618;border-radius:10px;border:2px solid #ff69b433;overflow:hidden;box-shadow:0 8px 32px #000a;animation:albIn .3s ease-out">'+content+'</div>';
-  // nav
-  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">';
-  html+='<button onclick="doFlipPage(\'prev\')" '+(canPrev?'':'disabled')+' style="background:'+(canPrev?'linear-gradient(135deg,#c084fc,#ff69b4)':'#222')+';border:none;border-radius:50%;width:46px;height:46px;font-size:22px;cursor:'+(canPrev?'pointer':'default')+';color:white">◀</button>';
-  html+='<div style="display:flex;gap:5px;align-items:center">';
-  for(let i=0;i<total;i++)html+='<div style="width:'+(i===cur?'18px':'7px')+';height:7px;border-radius:4px;background:'+(i===cur?'#ff69b4':'#333')+';transition:all .3s"></div>';
+  html+='<div style="text-align:center;margin-bottom:6px"><span class="pf" style="font-size:6px;color:#555">'+label+'</span></div>';
+
+  // Wrapper: arrows float on sides, album in center
+  html+='<div style="position:relative;display:flex;align-items:center;gap:0">';
+
+  // Left arrow (always takes space, invisible if disabled)
+  html+='<button onclick="doFlipPage(\'prev\')" '+(canPrev?'':'disabled')+' style="flex-shrink:0;width:38px;height:38px;border:none;border-radius:50%;font-size:20px;cursor:'+(canPrev?'pointer':'default')+';color:white;background:'+(canPrev?'linear-gradient(135deg,#c084fc,#ff69b4)':'#333')+';opacity:'+(canPrev?'1':'0.3')+'">◀</button>';
+
+  // Album
+  html+='<div style="flex:1;aspect-ratio:'+containerAR+';background:#0d0618;border-radius:10px;border:2px solid #ff69b433;overflow:hidden;box-shadow:0 8px 32px #000a;animation:albIn .3s ease-out;position:relative;margin:0 4px">'+content+'</div>';
+
+  // Right arrow
+  html+='<button onclick="doFlipPage(\'next\')" '+(canNext?'':'disabled')+' style="flex-shrink:0;width:38px;height:38px;border:none;border-radius:50%;font-size:20px;cursor:'+(canNext?'pointer':'default')+';color:white;background:'+(canNext?'linear-gradient(135deg,#ff69b4,#c084fc)':'#333')+';opacity:'+(canNext?'1':'0.3')+'">▶</button>';
+
   html+='</div>';
-  html+='<button onclick="doFlipPage(\'next\')" '+(canNext?'':'disabled')+' style="background:'+(canNext?'linear-gradient(135deg,#ff69b4,#c084fc)':'#222')+';border:none;border-radius:50%;width:46px;height:46px;font-size:22px;cursor:'+(canNext?'pointer':'default')+';color:white">▶</button>';
+
+  // Dots
+  html+='<div style="display:flex;justify-content:center;gap:5px;margin-top:10px">';
+  for(let i=0;i<total;i++)html+='<div style="width:'+(i===cur?'18px':'7px')+';height:7px;border-radius:4px;background:'+(i===cur?'#ff69b4':'#333')+';transition:all .3s"></div>';
   html+='</div></div>';
 
+  // Inspect overlay
   if(S.inspect){
     const c=S.inspect,q=(col[c.id]||0);
     html+='<div class="overlay" onclick="S.inspect=null;render()"><div onclick="event.stopPropagation()" style="display:flex;flex-direction:column;align-items:center;gap:14px;background:#130820;border:2px solid #ff69b433;border-radius:16px;padding:20px;width:calc(100% - 32px);max-width:340px"><div style="transform:scale(1.3);transform-origin:center top;margin-bottom:85px;flex-shrink:0">'+cardHTML(c)+'</div><div class="pf" style="font-size:7px;color:#888">'+q+' en tu colección</div><button class="btn-o" onclick="S.inspect=null;render()" style="width:100%">Cerrar</button></div></div>';
