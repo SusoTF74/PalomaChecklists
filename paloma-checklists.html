@@ -181,7 +181,7 @@ function startSync(){
       if(!data.lastMonthlyReset)data.lastMonthlyReset='';
       if(!data.album)data.album={visible:false,cover:{image:''},back:{image:''},pages:[],sounds:{pageFlip:'',cardStick:''}};
       if(!data.album.sounds)data.album.sounds={pageFlip:'',cardStick:''};
-      if(data.album.pages){data.album.pages=toArr(data.album.pages);data.album.pages.forEach(p=>{if(p&&p.slots)p.slots=toArr(p.slots);});}
+      if(data.album.pages){data.album.pages=toArr(data.album.pages);data.album.pages.forEach(p=>{if(p&&p.slots){p.slots=toArr(p.slots);p.slots.forEach(s=>{if(s&&s.w)s.h=Math.round(s.w*1.10*100)/100;});}});}
       ['julia','jesus'].forEach(u=>{if(!data[u].albumStickers)data[u].albumStickers={};});
       ['julia','jesus'].forEach(u=>{
         if(!data[u].weeklyTasks)data[u].weeklyTasks=[];
@@ -700,11 +700,12 @@ function fitAlbumCards(){
     if(!card)return;
     const W=wrap.clientWidth,H=wrap.clientHeight;
     if(!W||!H)return;
-    const cw=92, ch=card.offsetHeight||135;
-    const s=Math.min(W/cw,H/ch);
+    const cw=92;
+    const s=W/cw; // llena el ancho del hueco siempre
+    const ch=card.offsetHeight||135;
     card.style.transform='scale('+s+')';
-    card.style.left=((W-cw*s)/2)+'px';
-    card.style.top=((H-ch*s)/2)+'px';
+    card.style.left='0px';
+    card.style.top=Math.max(0,(H-ch*s)/2)+'px';
   });
 }
 
@@ -795,7 +796,7 @@ function doAddSlotClick(pageId,event){
   const y=+((event.clientY-rect.top)/rect.height*100).toFixed(1);
   const page=(S.db.album.pages||[]).find(p=>p.id===pageId);if(!page)return;
   if(!page.slots)page.slots=[];
-  page.slots.push({id:uid(),cardId:null,x,y,w:15,h:22});
+  page.slots.push({id:uid(),cardId:null,x,y,w:15,h:16.5});
   save();render();window.scrollTo(0,99999);
 }
 function doDeleteSlot(pageId,slotId){
@@ -1738,6 +1739,7 @@ function doImport(){
 S.loading=true;
 render();
 startSync();
+window.addEventListener('resize',()=>{setTimeout(fitAlbumCards,150);});
 setInterval(()=>{
   S.timer=calcTimer();
   document.querySelectorAll('.timer-el').forEach(el=>el.textContent=S.timer);
