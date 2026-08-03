@@ -23,7 +23,7 @@ html,body{min-height:100%;background:#0d0618;font-family:system-ui,sans-serif;co
 @keyframes lp{0%,100%{border-color:#ff0055;box-shadow:0 0 18px #ff005566}16%{border-color:#ff8c00;box-shadow:0 0 18px #ff8c0066}33%{border-color:#ffd700;box-shadow:0 0 18px #ffd70066}50%{border-color:#00ff88;box-shadow:0 0 18px #00ff8866}66%{border-color:#0099ff;box-shadow:0 0 18px #0099ff66}83%{border-color:#cc00ff;box-shadow:0 0 18px #cc00ff66}}
 @keyframes fly{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 @keyframes flipIn{from{transform:rotateY(90deg);opacity:0}to{transform:rotateY(0);opacity:1}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}@keyframes stickPulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.25)}}@keyframes stickCard{0%{transform:scale(.4) rotate(-12deg);opacity:0}60%{transform:scale(1.08) rotate(1deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}@keyframes albPageIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}@keyframes stickPulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.25)}}@keyframes stickCard{0%{transform:scale(.4) rotate(-12deg);opacity:0}60%{transform:scale(1.08) rotate(1deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes floatUp{0%{opacity:1;transform:translateY(0)}70%{opacity:1}100%{opacity:0;transform:translateY(-65px)}}
 @keyframes levelUpAnim{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.25)}55%{opacity:1;transform:translate(-50%,-65%) scale(1)}100%{opacity:0;transform:translate(-50%,-90%) scale(.85)}}
@@ -716,7 +716,14 @@ function doFlipPage(dir){
   // Toggle visibility — pure CSS, always works
   document.querySelectorAll('.alb-pos').forEach(function(el){
     const pos=+el.dataset.pos;
-    el.style.display=(pos===nxt)?'flex':'none';
+    if(pos===nxt){
+      el.style.display='flex';
+      el.style.animation='none';
+      el.offsetHeight; // force reflow
+      el.style.animation='albPageIn .3s ease-out';
+    }else{
+      el.style.display='none';
+    }
   });
   // Update label
   const lbl=document.getElementById('alb-label');
@@ -753,8 +760,10 @@ function doStickCard(pageId,slotId){
   save();
   // Update just the slot div in-place
   const slotEl=document.getElementById('slot-'+slotId);
-  if(slotEl&&card.image){
-    slotEl.innerHTML='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;border-radius:4px;overflow:hidden;cursor:pointer"><img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover"></div>';
+  if(slotEl){
+    slotEl.innerHTML='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:1px;box-sizing:border-box">'
+      +'<div style="width:100%;max-height:100%;aspect-ratio:92/135;overflow:hidden;border-radius:4px;box-shadow:0 2px 8px #000a">'+cardHTMLSm(card,0)+'</div>'
+      +'</div>';
   }else{
     render();
   }
@@ -843,10 +852,10 @@ function pageAlbum(){
     const stuck=stickers[slot.id];
     const canStick=card&&(col[slot.cardId]>0)&&!stuck;
     let inner='';
-    if(stuck&&card&&card.image){
-      inner='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;border-radius:4px;overflow:hidden;cursor:pointer"><img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover"></div>';
-    }else if(stuck&&card){
-      inner='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;background:#130820;border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px">🎴</div>';
+    if(stuck&&card){
+      inner='<div onclick="S.inspect='+JSON.stringify(card).replace(/"/g,'&quot;')+';render()" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:1px;box-sizing:border-box">'
+        +'<div style="width:100%;max-height:100%;aspect-ratio:92/135;overflow:hidden;border-radius:4px;box-shadow:0 2px 8px #000a">'+cardHTMLSm(card,0)+'</div>'
+        +'</div>';
     }else if(canStick){
       inner='<div style="width:100%;height:100%;border:2px dashed #ff69b466;border-radius:4px;background:#0d060eaa;display:flex;align-items:center;justify-content:center">'
         +'<button onclick="doStickCard(\''+page.id+'\',\''+slot.id+'\')" style="width:30px;height:30px;border:none;border-radius:50%;background:linear-gradient(135deg,#ff69b4,#c084fc);font-size:18px;font-weight:bold;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center;padding:0;animation:stickPulse 1s ease-in-out infinite">+</button>'
