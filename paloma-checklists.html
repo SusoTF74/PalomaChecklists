@@ -836,6 +836,20 @@ function doDeleteSlot(pageId,slotId){
   page.slots=(page.slots||[]).filter(s=>s.id!==slotId);
   save();render();window.scrollTo(0,99999);
 }
+function filterSlotCards(inp,slotId){
+  const q=inp.value.toLowerCase().trim();
+  const sel=document.getElementById('slots-'+slotId);
+  if(!sel)return;
+  if(!q){sel.style.display='none';return;}
+  sel.style.display='block';
+  Array.from(sel.options).forEach(function(opt){
+    opt.style.display=(opt.text.toLowerCase().includes(q)||opt.value==='')?'':'none';
+  });
+  // Auto-select if only one match
+  const visible=Array.from(sel.options).filter(o=>o.style.display!=='none'&&o.value!=='');
+  if(visible.length===1){sel.value=visible[0].value;}
+}
+
 function doLinkSlotCard(pageId,slotId,cardId){
   const page=(S.db.album.pages||[]).find(p=>p.id===pageId);if(!page)return;
   const slot=(page.slots||[]).find(s=>s.id===slotId);if(!slot)return;
@@ -1587,12 +1601,12 @@ function pageAdmin(){
           (page.slots||[]).forEach(function(slot,si){
             html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'
               +'<span style="background:#4ade80;color:#0d0618;font-size:8px;border-radius:3px;padding:2px 5px;font-weight:bold;flex-shrink:0">'+(si+1)+'</span>'
-              +'<select onchange="doLinkSlotCard(\''+page.id+'\',\''+slot.id+'\',this.value)" style="flex:1;background:#07070f;border:1px solid #333;border-radius:6px;color:#f0d6ff;padding:5px;font-size:11px">'
+              +'<div style="flex:1;display:flex;flex-direction:column;gap:4px"><input id="slotq-'+slot.id+'" placeholder="Buscar carta..." oninput="filterSlotCards(this,\''+slot.id+'\')" value="'+(slot.cardId?(getAllCards().find(c=>c.id===slot.cardId)||{}).title||'':'')+'" style="width:100%;background:#07070f;border:1px solid #555;border-radius:6px;color:#f0d6ff;padding:5px;font-size:11px;box-sizing:border-box"><select id="slots-'+slot.id+'" size="4" onchange="doLinkSlotCard(\''+page.id+'\',\''+slot.id+'\',this.value);document.getElementById(\'slotq-'+slot.id+'\').value=this.options[this.selectedIndex].text.replace(/ \(.*\)$/,\'\')" style="width:100%;background:#07070f;border:1px solid #333;border-radius:6px;color:#f0d6ff;font-size:11px;display:none">'
               +'<option value="">— Sin carta —</option>';
             getAllCards().forEach(function(c){
               html+='<option value="'+c.id+'"'+(slot.cardId===c.id?' selected':'')+'>'+esc(c.title)+' ('+c.rarity+')</option>';
             });
-            html+='</select></div>';
+            html+='</select></div></div>';
           });
         }
         html+='</div>';
