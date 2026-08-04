@@ -117,10 +117,10 @@ const SOBRES={
   mega:{lbl:'Megasobre ✨',cost:300,n:5,icon:'🌟',bc:'#fbbf24',gr:'linear-gradient(135deg,#92400e,#fbbf24)',probs:{comun:15,poco_comun:20,rara:25,epica:25,legendaria:15},epic:true}
 };
 const RANK_DEFS=[['rankBronze','🥉 Icono Bronce (nv. 1-24)'],['rankSilver','🥈 Icono Plata (nv. 25-49)'],['rankGold','🥇 Icono Oro (nv. 50-74)'],['rankPlatinum','💠 Icono Platino (nv. 75-99)'],['rankDiamond','💎 Icono Diamante (nv. 100+)'],['lockedAchImage','🔒 Imagen fondo logros bloqueados']];
-const SND_DEFS=[['bgMusic','🎵 Música de fondo (bucle)'],['addTask','✅ Añadir tarea'],['completeTask','✓ Completar tarea'],['requestTrade','📤 Enviar intercambio'],['acceptTrade','🤝 Aceptar intercambio'],['openPack','📦 Abrir sobre'],['comun','⬜ Revelar carta Común'],['poco_comun','💙 Revelar carta Poco Común'],['rara','💚 Revelar carta Rara'],['epica','💜 Revelar carta Épica'],['legendaria','⭐ Revelar carta Legendaria'],['toque','🔔 Recibir un toque'],['levelUp','🎵 Sonido Level Up'],['achievement','🏆 Desbloquear logro']];
+const SND_DEFS=[['bgMusic','🎵 Música de fondo (bucle)'],['addTask','✅ Añadir tarea'],['completeTask','✓ Completar tarea'],['requestTrade','📤 Enviar intercambio'],['acceptTrade','🤝 Aceptar intercambio'],['openPack','📦 Abrir sobre'],['comun','⬜ Revelar carta Común'],['poco_comun','💙 Revelar carta Poco Común'],['rara','💚 Revelar carta Rara'],['epica','💜 Revelar carta Épica'],['legendaria','⭐ Revelar carta Legendaria'],['toque','🔔 Recibir un toque'],['levelUp','🎵 Sonido Level Up'],['achievement','🏆 Desbloquear logro'],['eventPlus','➕ Evento: subir'],['eventMinus','➖ Evento: bajar']];
 
 // ─── STATE ─────────────────────────────────────────────────────────────────
-let S={user:null,page:'checklist',db:null,timer:'--:--:--',selPts:10,pack:null,inspect:null,myCard:null,thCard:null,rarFilt:'all',adminEditId:null,showImport:false,adminRarity:'comun',muted:false,loading:true,inspectAch:null,showOtherAchs:false,checklistMode:'daily',otroChecklistMode:'daily',weeklyTimer:'--d --:--:--',monthlyTimer:'--d --:--:--',albumPage:0,editSlotPage:null};
+let S={user:null,page:'checklist',db:null,timer:'--:--:--',selPts:10,pack:null,inspect:null,myCard:null,thCard:null,rarFilt:'all',adminEditId:null,showImport:false,adminRarity:'comun',muted:false,loading:true,inspectAch:null,showOtherAchs:false,checklistMode:'daily',otroChecklistMode:'daily',weeklyTimer:'--d --:--:--',monthlyTimer:'--d --:--:--',albumPage:0,editSlotPage:null,mochilaMode:false,openMochilas:{},viewOtherEvt:null};
 
 // ─── UTILS ─────────────────────────────────────────────────────────────────
 function uid(){return Math.random().toString(36).slice(2,10)}
@@ -543,12 +543,31 @@ function pageChecklist(){
     html+='<div style="text-align:center;padding:32px 0"><div style="font-size:40px;margin-bottom:10px">📝</div><div class="pf" style="font-size:8px;color:#555">Añade tu primera tarea abajo</div></div>';
   }else{
     tasks.forEach((t,i)=>{
-      html+='<div class="fade-up" style="display:flex;align-items:center;gap:9px;background:'+(t.done?'#091409':'#130820')+';border:1px solid '+(t.done?'#4ade8033':'#ff69b422')+';border-radius:10px;padding:9px 11px;animation-delay:'+(i*40)+'ms"><div onclick="doToggleTask(\''+t.id+'\')" style="width:22px;height:22px;border-radius:4px;flex-shrink:0;cursor:pointer;border:2px solid '+(t.done?'#4ade80':'#ff69b4')+';background:'+(t.done?'#4ade80':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#0d0618;font-weight:bold">'+(t.done?'✓':'')+'</div><span style="flex:1;font-size:13px;color:'+(t.done?'#6b7280':'#f0d6ff')+';text-decoration:'+(t.done?'line-through':'none')+'">'+esc(t.title)+'</span><span class="pf" style="font-size:7px;padding:3px 7px;background:#fbbf2422;border:1px solid #fbbf2444;border-radius:20px;color:#fbbf24;flex-shrink:0">⭐'+t.pts+'</span><button onclick="doDeleteTask(\''+t.id+'\')" style="background:none;border:none;cursor:pointer;color:#444;font-size:14px;flex-shrink:0;padding:0 2px">🗑️</button></div>';
+      if(t.type==='mochila'){
+        const _ms=t.subtasks||[];const _msd=_ms.filter(s=>s.done).length;const _mo=!!S.openMochilas[t.id];
+        html+='<div class="fade-up" style="background:'+(t.done?'#091409':'#130820')+';border:1px solid '+(t.done?'#4ade8033':'#60a5fa33')+';border-radius:10px;padding:9px 11px;animation-delay:'+(i*40)+'ms">';
+        html+='<div style="display:flex;align-items:center;gap:9px">';
+        html+='<div onclick="doToggleTask(\\\''+t.id+'\\\')" style="width:22px;height:22px;border-radius:4px;flex-shrink:0;cursor:pointer;border:2px solid '+(t.done?'#4ade80':'#60a5fa')+';background:'+(t.done?'#4ade80':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#0d0618;font-weight:bold">'+(t.done?'&#10003;':'')+'</div>';
+        html+='<span style="font-size:15px">&#127890;</span>';
+        html+='<span style="flex:1;font-size:13px;color:'+(t.done?'#6b7280':'#f0d6ff')+';text-decoration:'+(t.done?'line-through':'none')+'">'+esc(t.title)+'</span>';
+        html+='<span class="pf" style="font-size:6px;color:#60a5fa">'+_msd+'/'+_ms.length+'</span>';
+        html+='<span class="pf" style="font-size:7px;padding:3px 7px;background:#fbbf2422;border:1px solid #fbbf2444;border-radius:20px;color:#fbbf24;flex-shrink:0">&#11088;'+t.pts+'</span>';
+        html+='<button onclick="toggleMochila(\\\''+t.id+'\\\')" style="background:none;border:1px solid #60a5fa44;border-radius:4px;cursor:pointer;color:#60a5fa;font-size:12px;padding:2px 6px">'+(_mo?'&#9650;':'&#9660;')+'</button>';
+        html+='<button onclick="doDeleteTask(\\\''+t.id+'\\\')" style="background:none;border:none;cursor:pointer;color:#444;font-size:14px;padding:0 2px">&#128465;</button>';
+        html+='</div>';
+        html+='<div id="sub-panel-'+t.id+'" style="display:'+(_mo?'block':'none')+';margin-top:8px;padding-top:8px;border-top:1px solid #60a5fa22">';
+        html+='<div id="subl-'+t.id+'">'+renderSubtasks(t.id,_ms)+'</div>';
+        html+='<div style="display:flex;gap:6px;margin-top:6px"><input id="sub-inp-'+t.id+'" class="inp" style="flex:1;font-size:11px;padding:4px 8px" placeholder="Nueva subtarea..." onkeydown="if(event.key===\\\'Enter\\\')doAddSubtask(\\\''+t.id+'\\\')" ><button onclick="doAddSubtask(\\\''+t.id+'\\\')" class="btn" style="padding:4px 10px">+</button></div>';
+        html+='</div></div>';
+      }else{
+      html+='<div class="fade-up" style="display:flex;align-items:center;gap:9px;background:'+(t.done?'#091409':'#130820')+';border:1px solid '+(t.done?'#4ade8033':'#ff69b422')+';border-radius:10px;padding:9px 11px;animation-delay:'+(i*40)+'ms"><div onclick="doToggleTask(\''+t.id+'\')" style="width:22px;height:22px;border-radius:4px;flex-shrink:0;cursor:pointer;border:2px solid '+(t.done?'#4ade80':'#ff69b4')+';background:'+(t.done?'#4ade80':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#0d0618;font-weight:bold">'+(t.done?'✓':'')+'</div><span style="flex:1;font-size:13px;color:'+(t.done?'#6b7280':'#f0d6ff')+';text-decoration:'+(t.done?'line-through':'none')+'">'+esc(t.title)+'</span><span class="pf" style="font-size:7px;padding:3px 7px;background:#fbbf2422;border:1px solid #fbbf2444;border-radius:20px;color:#fbbf24;flex-shrink:0">⭐'+t.pts+'</span><button onclick="doDeleteTask(\''+t.id+'\')" style="background:none;border:none;cursor:pointer;color:#444;font-size:14px;flex-shrink:0;padding:0 2px">🗑️</button></div>'
+      }
+;
     });
   }
   html+='</div>';
   const ptsBtns=PTS.map(p=>'<button onclick="S.selPts='+p+';renderPtsButtons()" style="border:1px solid '+(S.selPts===p?'#ff69b4':'#ff69b433')+';border-radius:6px;background:'+(S.selPts===p?'#ff69b4':'transparent')+';color:'+(S.selPts===p?'white':'#ff69b4')+';padding:4px 7px;cursor:pointer;font-size:11px;font-family:\'Press Start 2P\',monospace">'+p+'</button>').join('');
-  html+='<div style="background:#130820;border:1px solid #ff69b444;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px"><div class="pf" style="font-size:8px;color:#ff69b4">➕ Nueva tarea</div><input id="new-task-inp" class="inp" placeholder="Nombre de la tarea..." onkeydown="if(event.key===\'Enter\')doAddTask()"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="pf" style="font-size:7px;color:#c084fc;flex-shrink:0">Puntos:</span><div id="pts-buttons" style="display:flex;gap:4px;flex-wrap:wrap">'+ptsBtns+'</div></div><button class="btn" onclick="doAddTask()">Añadir tarea</button></div></div>';
+  html+='<div style="background:#130820;border:1px solid #ff69b444;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px"><div class="pf" style="font-size:8px;color:#ff69b4">➕ Nueva tarea</div><input id="new-task-inp" class="inp" placeholder="Nombre de la tarea..." onkeydown="if(event.key===\'Enter\')doAddTask()"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="pf" style="font-size:7px;color:#c084fc;flex-shrink:0">Puntos:</span><div id="pts-buttons" style="display:flex;gap:4px;flex-wrap:wrap">'+ptsBtns+'<button onclick="S.mochilaMode=!S.mochilaMode;render()" style="border:1px solid #60a5fa;border-radius:6px;background:'+(S.mochilaMode?'#60a5fa':'transparent')+';color:'+(S.mochilaMode?'#0d0618':'#60a5fa')+';padding:4px 8px;cursor:pointer;font-size:14px" title="Mochila">&#127890;</button></div></div><button class="btn" onclick="doAddTask()">Añadir tarea</button></div></div>';
   return html;
 }
 function pageTienda(){
@@ -609,7 +628,7 @@ function pageColeccion(){
   let html='<div style="max-width:820px"><div class="pf" style="font-size:11px;color:#ff69b4;margin-bottom:4px">🃏 Mi Colección</div><div class="pf" style="font-size:7px;color:#666;margin-bottom:14px">'+owned+'/'+pool.length+' únicas</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px">'+filters+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px">'+grid+'</div>';
   if(S.inspect){
     const c=S.inspect,q=(col[c.id]||0);
-    html+='<div class="overlay" onclick="S.inspect=null;render()"><div onclick="event.stopPropagation()" style="display:flex;flex-direction:column;align-items:center;gap:14px;background:#130820;border:2px solid #ff69b433;border-radius:16px;padding:20px;width:calc(100% - 32px);max-width:340px"><div style="transform:scale(1.3);transform-origin:center top;margin-bottom:85px;flex-shrink:0">'+cardHTML(c)+'</div><div class="pf" style="font-size:7px;color:#888">'+q+' en tu colección</div><button class="btn" onclick="downloadCardAsPNG(S.inspect)" style="width:100%;background:linear-gradient(135deg,#3b82f6,#60a5fa)">📥 Descargar PNG</button><button class="btn-o" onclick="S.inspect=null;render()" style="width:100%">Cerrar</button></div></div>';
+    html+='<div class="overlay" onclick="S.inspect=null;render()"><div onclick="event.stopPropagation()" style="display:flex;flex-direction:column;align-items:center;gap:14px;background:#130820;border:2px solid #ff69b433;border-radius:16px;padding:16px;width:calc(100% - 32px);max-width:320px;max-height:90dvh;overflow-y:auto;box-sizing:border-box">'+cardHTML(c)+'<div class="pf" style="font-size:7px;color:#888">'+q+' en tu colección</div><button class="btn" onclick="downloadCardAsPNG(S.inspect)" style="width:100%;background:linear-gradient(135deg,#3b82f6,#60a5fa)">📥 Descargar PNG</button><button class="btn-o" onclick="S.inspect=null;render()" style="width:100%">Cerrar</button></div></div>';
   }
   html+='</div>';
   return html;
@@ -684,7 +703,15 @@ const _oAchs=S.db.achievements||[];
     html+='<div style="text-align:center;padding:32px 0"><div style="font-size:40px;margin-bottom:10px">😴</div><div class="pf" style="font-size:8px;color:#555">'+oName+' no tiene tareas aún</div></div>';
   }else{
     tasks.forEach(t=>{
-      html+='<div style="display:flex;align-items:center;gap:9px;background:'+(t.done?'#091409':'#130820')+';border:1px solid '+(t.done?'#4ade8033':'#ff69b422')+';border-radius:10px;padding:9px 11px;margin-bottom:7px"><div style="width:22px;height:22px;border-radius:4px;flex-shrink:0;border:2px solid '+(t.done?'#4ade80':'#ff69b4')+';background:'+(t.done?'#4ade80':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#0d0618;font-weight:bold">'+(t.done?'✓':'')+'</div><span style="flex:1;font-size:13px;color:'+(t.done?'#6b7280':'#f0d6ff')+';text-decoration:'+(t.done?'line-through':'none')+'">'+esc(t.title)+'</span><span class="pf" style="font-size:7px;padding:3px 7px;background:#fbbf2422;border:1px solid #fbbf2444;border-radius:20px;color:#fbbf24;flex-shrink:0">⭐'+t.pts+'</span></div>';
+      if(t.type==='mochila'){
+        const _os=t.subtasks||[];const _osd=_os.filter(s=>s.done).length;
+        html+='<div style="background:'+(t.done?'#091409':'#130820')+';border:1px solid '+(t.done?'#4ade8033':'#60a5fa33')+';border-radius:10px;padding:9px 11px;margin-bottom:7px">';
+        html+='<div style="display:flex;align-items:center;gap:9px"><div style="width:22px;height:22px;border-radius:4px;flex-shrink:0;border:2px solid '+(t.done?'#4ade80':'#60a5fa')+';background:'+(t.done?'#4ade80':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#0d0618;font-weight:bold">'+(t.done?'&#10003;':'')+'</div><span style="font-size:15px">&#127890;</span><span style="flex:1;font-size:13px;color:'+(t.done?'#6b7280':'#f0d6ff')+';text-decoration:'+(t.done?'line-through':'none')+'">'+esc(t.title)+'</span><span class="pf" style="font-size:6px;color:#60a5fa">'+_osd+'/'+_os.length+'</span><span class="pf" style="font-size:7px;padding:3px 7px;background:#fbbf2422;border:1px solid #fbbf2444;border-radius:20px;color:#fbbf24">&#11088;'+t.pts+'</span></div>';
+        if(_os.length>0){html+='<div style="margin-top:6px;padding-left:32px">'+_os.map(function(s){return '<span style="font-size:11px;color:'+(s.done?'#6b7280':'#9ca3af')+';text-decoration:'+(s.done?'line-through':'none')+'">'+(s.done?'&#10003;':'&#9675;')+' '+esc(s.title)+'</span><br>';}).join('')+'</div>';}
+        html+='</div>';
+      }else{
+              html+='<div style="display:flex;align-items:center;gap:9px;background:'+(t.done?'#091409':'#130820')+';border:1px solid '+(t.done?'#4ade8033':'#ff69b422')+';border-radius:10px;padding:9px 11px;margin-bottom:7px"><div style="width:22px;height:22px;border-radius:4px;flex-shrink:0;border:2px solid '+(t.done?'#4ade80':'#ff69b4')+';background:'+(t.done?'#4ade80':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#0d0618;font-weight:bold">'+(t.done?'✓':'')+'</div><span style="flex:1;font-size:13px;color:'+(t.done?'#6b7280':'#f0d6ff')+';text-decoration:'+(t.done?'line-through':'none')+'">'+esc(t.title)+'</span><span class="pf" style="font-size:7px;padding:3px 7px;background:#fbbf2422;border:1px solid #fbbf2444;border-radius:20px;color:#fbbf24;flex-shrink:0">⭐'+t.pts+'</span></div>';
+      }
     });
   }
   const now=Date.now(),toques=S.db.toques||{},last=toques[S.user]||0,cd=7200000;
@@ -996,6 +1023,10 @@ posHTML+='<div class="alb-pos" data-pos="'+pos+'" style="display:'+(isCurrentPos
   html+='<div style="display:flex;justify-content:center;gap:5px;margin-top:10px">';
   for(let i=0;i<total;i++)html+='<div class="alb-dot" style="width:'+(i===cur?'18px':'7px')+';height:7px;border-radius:4px;background:'+(i===cur?'#ff69b4':'#333')+';transition:all .3s"></div>';
   html+='</div>';
+  const _aS=toArr(album.pages||[]).reduce(function(n,p){return n+toArr(p.slots||[]).filter(function(s){return s&&s.cardId;}).length;},0);
+  const _aP=Object.keys(stickers).filter(function(sid){return toArr(album.pages||[]).some(function(p){return toArr(p.slots||[]).some(function(s){return s&&s.id===sid&&s.cardId;});});}).length;
+  const _aPct=_aS>0?Math.round(_aP/_aS*100):0;
+  html+='<div style="background:#130820;border:1px solid #ff69b422;border-radius:10px;padding:10px 14px;margin-top:10px"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span class="pf" style="font-size:6px;color:#ff69b4">&#128218; Progreso</span><span class="pf" style="font-size:6px;color:#fbbf24">'+(_aS>0?_aP+'/'+_aS+' · '+_aPct+'%':'Sin huecos')+'</span></div><div style="background:#07070f;border-radius:20px;height:7px;overflow:hidden"><div style="width:'+_aPct+'%;height:100%;background:linear-gradient(90deg,#ff69b4,#c084fc);border-radius:20px;transition:width .4s"></div></div></div>';
 
   if(S.inspect){
     const c=S.inspect,q=(col[c.id]||0);
@@ -1100,8 +1131,22 @@ function pageEventos(){
       const rem=evt.tasks.filter(t=>(ep.tasks[t.id]||0)<t.target).length;
       html+='<div class="pf" style="text-align:center;font-size:7px;color:#555;padding:8px">Completa '+rem+' tarea'+(rem>1?'s':'')+' más para reclamar</div>';
     }
+    html+='<button onclick="S.viewOtherEvt=\''+evt.id+'\';render()" style="margin-top:6px;width:100%;background:#0d0618;border:1px solid #a78bfa44;border-radius:8px;padding:8px;cursor:pointer;color:#a78bfa;font-size:11px;font-family:monospace">&#128065; Progreso de '+USERS[other()].name+'</button>';
     html+='</div></div>';
   });
+  if(S.viewOtherEvt){
+    const _vE=(S.db.events||[]).find(function(e){return e.id===S.viewOtherEvt;});
+    if(_vE){
+      const _vP=(S.db[other()].eventProgress||{})[_vE.id]||{tasks:{},tasksRewarded:{}};
+      html+='<div class="overlay" onclick="S.viewOtherEvt=null;render()"><div onclick="event.stopPropagation()" style="background:#130820;border:2px solid #a78bfa44;border-radius:16px;padding:20px;width:calc(100% - 32px);max-width:380px;max-height:90dvh;overflow-y:auto;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">';
+      html+='<div class="pf" style="font-size:10px;color:#a78bfa">&#128065; '+esc(USERS[other()].name)+' · '+esc(_vE.title)+'</div>';
+      (_vE.tasks||[]).forEach(function(task){
+        const _vc=((_vP.tasks)||{})[task.id]||0,_vp=Math.min(100,Math.round(_vc/task.target*100)),_vd=_vc>=task.target;
+        html+='<div style="background:#0d0618;border:1px solid '+(_vd?'#4ade8033':'#a78bfa22')+';border-radius:10px;padding:10px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span class="pf" style="font-size:7px;color:'+(_vd?'#4ade80':'#f0d6ff')+'">'+esc(task.title)+'</span><span class="pf" style="font-size:6px;color:#fbbf24">'+_vc+'/'+task.target+'</span></div><div style="background:#07070f;border-radius:20px;height:7px;overflow:hidden"><div style="width:'+_vp+'%;height:100%;background:'+(_vd?'linear-gradient(90deg,#4ade80,#22d3ee)':'linear-gradient(90deg,#a78bfa,#60a5fa)')+';border-radius:20px"></div></div></div>';
+      });
+      html+='<button class="btn-o" onclick="S.viewOtherEvt=null;render()" style="width:100%">Cerrar</button></div></div>';
+    }
+  }
   html+='</div>';
   return html;
 }
@@ -1121,7 +1166,9 @@ function updateEventProgress(evtId,taskId,delta){
     ep.tasksRewarded[taskId]=true;ep.tasks[taskId]=nv;
     S.db[S.user].pts+=task.pts;gainXP(task.xp);
   }else{ep.tasks[taskId]=nv;}
-  save();render();
+  playSound(delta>0?'eventPlus':'eventMinus');
+  save();
+  const _me=document.querySelector('main.mpb');if(_me){_me.innerHTML=pageEventos();}else{render();}
 }
 
 function claimEventReward(evtId){
@@ -1678,11 +1725,18 @@ function doLogin(){
   if(lerr){lerr.textContent='Contraseña incorrecta 💔';lerr.style.display='block'}
 }
 
+function doAddSubtask(taskId){const inp=document.getElementById('sub-inp-'+taskId);if(!inp||!inp.value.trim())return;const t=getMyTasks().find(t=>t.id===taskId);if(!t)return;if(!t.subtasks)t.subtasks=[];t.subtasks.push({id:uid(),title:inp.value.trim(),done:false});inp.value='';save();const el=document.getElementById('subl-'+taskId);if(el)el.innerHTML=renderSubtasks(taskId,t.subtasks);}
+function doToggleSubtask(taskId,subId){const t=getMyTasks().find(t=>t.id===taskId);if(!t||!t.subtasks)return;const s=t.subtasks.find(s=>s.id===subId);if(!s)return;s.done=!s.done;save();const el=document.getElementById('subl-'+taskId);if(el)el.innerHTML=renderSubtasks(taskId,t.subtasks);}
+function doDeleteSubtask(taskId,subId){const t=getMyTasks().find(t=>t.id===taskId);if(!t||!t.subtasks)return;t.subtasks=t.subtasks.filter(s=>s.id!==subId);save();const el=document.getElementById('subl-'+taskId);if(el)el.innerHTML=renderSubtasks(taskId,t.subtasks);}
+function toggleMochila(taskId){S.openMochilas[taskId]=!S.openMochilas[taskId];const el=document.getElementById('sub-panel-'+taskId);if(el)el.style.display=S.openMochilas[taskId]?'block':'none';}
+function renderSubtasks(taskId,subs){if(!subs||!subs.length)return '<div class="pf" style="font-size:6px;color:#555;padding:4px 0">Sin subtareas</div>';return subs.map(function(s){return '<div style="display:flex;align-items:center;gap:6px;padding:3px 0"><div onclick="doToggleSubtask(\''+taskId+'\',\''+s.id+'\')" style="width:16px;height:16px;border-radius:3px;flex-shrink:0;cursor:pointer;border:2px solid '+(s.done?'#60a5fa':'#60a5fa55')+';background:'+(s.done?'#60a5fa':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:9px;color:#0d0618">'+(s.done?'&#10003;':'')+'</div><span style="flex:1;font-size:12px;color:'+(s.done?'#6b7280':'#d1d5db')+';text-decoration:'+(s.done?'line-through':'none')+'">'+esc(s.title)+'</span><button onclick="doDeleteSubtask(\''+taskId+'\',\''+s.id+'\')" style="background:none;border:none;cursor:pointer;color:#444;font-size:11px;padding:0">&#128465;</button></div>';}).join('');}
+
 function doAddTask(){
   const inp=document.getElementById('new-task-inp');
   const title=inp?inp.value.trim():'';
   if(!title)return;
-  getMyTasks().push({id:uid(),title,pts:S.selPts,done:false});
+  const _nt={id:uid(),title,pts:S.selPts,done:false};if(S.mochilaMode){_nt.type='mochila';_nt.subtasks=[];}
+  getMyTasks().push(_nt);
   playSound('addTask');save();
 }
 function doToggleTask(id){
