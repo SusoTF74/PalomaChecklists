@@ -565,6 +565,7 @@ function pageChecklist(){
         html+='<span class="pf" style="font-size:7px;padding:3px 7px;background:#fbbf2422;border:1px solid #fbbf2444;border-radius:20px;color:#fbbf24;flex-shrink:0">&#11088;'+t.pts+'</span>';
         html+='<button onclick="toggleMochila(\''+t.id+'\')" style="background:none;border:1px solid #60a5fa44;border-radius:4px;cursor:pointer;color:#60a5fa;font-size:12px;padding:2px 6px">'+(_mo?'&#9650;':'&#9660;')+'</button>';
         html+='<button onclick="doDeleteTask(\''+t.id+'\')" style="background:none;border:none;cursor:pointer;color:#444;font-size:14px;padding:0 2px">&#128465;</button>';
+        html+=''+( isTaskSaved(t) ? '<button onclick="doUnsaveTask(this.dataset.id)" data-id="'+getSavedMatch(t).id+'" style="background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px" title="Quitar">🔖</button>' : '<button onclick="doSaveTask(this.dataset.id)" data-id="'+t.id+'" style="background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px" title="Guardar">💾</button>' )+'';
         html+='</div>';
         html+='<div id="sub-panel-'+t.id+'" style="display:'+(_mo?'block':'none')+';margin-top:8px;padding-top:8px;border-top:1px solid #60a5fa22">';
         html+='<div id="subl-'+t.id+'">'+renderSubtasks(t.id,_ms)+'</div>';
@@ -577,6 +578,8 @@ function pageChecklist(){
     });
   }
   html+='</div>';
+  const ptsBtns=PTS.map(p=>'<button onclick="S.selPts='+p+';renderPtsButtons()" style="border:1px solid '+(S.selPts===p?'#ff69b4':'#ff69b433')+';border-radius:6px;background:'+(S.selPts===p?'#ff69b4':'transparent')+';color:'+(S.selPts===p?'white':'#ff69b4')+';padding:4px 7px;cursor:pointer;font-size:11px;font-family:\'Press Start 2P\',monospace">'+p+'</button>').join('');
+  html+='<div style="background:#130820;border:1px solid #ff69b444;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px"><div class="pf" style="font-size:8px;color:#ff69b4">➕ Nueva tarea</div><input id="new-task-inp" class="inp" placeholder="Nombre de la tarea..." onkeydown="if(event.key===\'Enter\')doAddTask()"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="pf" style="font-size:7px;color:#c084fc;flex-shrink:0">Puntos:</span><div id="pts-buttons" style="display:flex;gap:4px;flex-wrap:wrap">'+ptsBtns+'</div><button onclick="S.mochilaMode=!S.mochilaMode;render()" style="border:1px solid #60a5fa;border-radius:6px;background:'+(S.mochilaMode?'#60a5fa':'transparent')+';color:'+(S.mochilaMode?'#0d0618':'#60a5fa')+';padding:4px 8px;cursor:pointer;font-size:14px" title="Mochila">&#127890;</button></div><button class="btn" onclick="doAddTask()">Añadir tarea</button></div></div>';
   const _bank=getSavedTasks();
   if(_bank.length>0){
     html+='<div style="background:#130820;border:1px solid #fbbf2433;border-radius:12px;padding:12px 14px;margin-top:4px">';
@@ -593,8 +596,6 @@ function pageChecklist(){
     html+='</div>';
   }
 
-  const ptsBtns=PTS.map(p=>'<button onclick="S.selPts='+p+';renderPtsButtons()" style="border:1px solid '+(S.selPts===p?'#ff69b4':'#ff69b433')+';border-radius:6px;background:'+(S.selPts===p?'#ff69b4':'transparent')+';color:'+(S.selPts===p?'white':'#ff69b4')+';padding:4px 7px;cursor:pointer;font-size:11px;font-family:\'Press Start 2P\',monospace">'+p+'</button>').join('');
-  html+='<div style="background:#130820;border:1px solid #ff69b444;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px"><div class="pf" style="font-size:8px;color:#ff69b4">➕ Nueva tarea</div><input id="new-task-inp" class="inp" placeholder="Nombre de la tarea..." onkeydown="if(event.key===\'Enter\')doAddTask()"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="pf" style="font-size:7px;color:#c084fc;flex-shrink:0">Puntos:</span><div id="pts-buttons" style="display:flex;gap:4px;flex-wrap:wrap">'+ptsBtns+'</div><button onclick="S.mochilaMode=!S.mochilaMode;render()" style="border:1px solid #60a5fa;border-radius:6px;background:'+(S.mochilaMode?'#60a5fa':'transparent')+';color:'+(S.mochilaMode?'#0d0618':'#60a5fa')+';padding:4px 8px;cursor:pointer;font-size:14px" title="Mochila">&#127890;</button></div><button class="btn" onclick="doAddTask()">Añadir tarea</button></div></div>';
   return html;
 }
 function pageTienda(){
