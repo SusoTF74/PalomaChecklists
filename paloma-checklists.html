@@ -120,7 +120,7 @@ const RANK_DEFS=[['rankBronze','🥉 Icono Bronce (nv. 1-24)'],['rankSilver','�
 const SND_DEFS=[['bgMusic','🎵 Música de fondo (bucle)'],['addTask','✅ Añadir tarea'],['completeTask','✓ Completar tarea'],['requestTrade','📤 Enviar intercambio'],['acceptTrade','🤝 Aceptar intercambio'],['openPack','📦 Abrir sobre'],['comun','⬜ Revelar carta Común'],['poco_comun','💙 Revelar carta Poco Común'],['rara','💚 Revelar carta Rara'],['epica','💜 Revelar carta Épica'],['legendaria','⭐ Revelar carta Legendaria'],['toque','🔔 Recibir un toque'],['levelUp','🎵 Sonido Level Up'],['achievement','🏆 Desbloquear logro'],['eventPlus','➕ Evento: subir'],['eventMinus','➖ Evento: bajar']];
 
 // ─── STATE ─────────────────────────────────────────────────────────────────
-let S={user:null,page:'checklist',db:null,timer:'--:--:--',selPts:10,pack:null,inspect:null,myCard:null,thCard:null,rarFilt:'all',adminEditId:null,showImport:false,adminRarity:'comun',muted:false,loading:true,inspectAch:null,showOtherAchs:false,checklistMode:'daily',otroChecklistMode:'daily',weeklyTimer:'--d --:--:--',monthlyTimer:'--d --:--:--',albumPage:0,editSlotPage:null,mochilaMode:false,openMochilas:{},viewOtherEvt:null};
+let S={user:null,page:'checklist',db:null,timer:'--:--:--',selPts:10,pack:null,inspect:null,myCard:null,thCard:null,rarFilt:'all',adminEditId:null,showImport:false,adminRarity:'comun',muted:false,loading:true,inspectAch:null,showOtherAchs:false,checklistMode:'daily',otroChecklistMode:'daily',weeklyTimer:'--d --:--:--',monthlyTimer:'--d --:--:--',albumPage:0,editSlotPage:null,mochilaMode:false,openMochilas:{},viewOtherEvt:null,settingsOpen:false};
 
 // ─── UTILS ─────────────────────────────────────────────────────────────────
 function uid(){return Math.random().toString(36).slice(2,10)}
@@ -282,7 +282,7 @@ function preloadSounds(){
 }
 
 function playSound(key){
-  if(S.muted)return;
+  if(getSettings().sfxVol===0)return;
   const url=(S.db.sounds||{})[key];
   if(!url)return;
   try{
@@ -291,25 +291,36 @@ function playSound(key){
       const a=pool[pool._i%2];
       pool._i=(pool._i+1)%2;
       a.currentTime=0;
+      a.volume=getSettings().sfxVol;
       a.play().catch(()=>{});
     }else{
       const a=new Audio(url);
-      a.volume=0.7;
+      a.volume=getSettings().sfxVol;
       a.play().catch(()=>{});
     }
   }catch(e){}
 }
-function toggleMute(){
-  S.muted=!S.muted;
-  if(bgAudio){if(S.muted)bgAudio.pause();else bgAudio.play().catch(()=>{});}
-  const btn=document.getElementById('mute-btn');
-  if(btn)btn.textContent=S.muted?'🔇':'🔊';
+function getSettings(){const u=ud();if(!u.settings)u.settings={musicVol:0.7,sfxVol:0.7};return u.settings;}
+function updateMusicVol(v){
+  getSettings().musicVol=parseFloat(v);
+  if(bgAudio)bgAudio.volume=getSettings().musicVol;
+  save();
+}
+function updateSfxVol(v){
+  getSettings().sfxVol=parseFloat(v);
+  Object.values(audioPool).forEach(pool=>{if(Array.isArray(pool))pool.forEach(a=>{a.volume=getSettings().sfxVol;});});
+  save();
+}
+function toggleSettings(){
+  S.settingsOpen=!S.settingsOpen;
+  const p=document.getElementById('settings-panel');
+  if(p){p.style.display=S.settingsOpen?'flex':'none';}else{render();}
 }
 function startBgMusic(){
   const url=(S.db.sounds||{}).bgMusic;
   if(bgAudio){bgAudio.pause();bgAudio=null;}
-  if(!url||S.muted)return;
-  try{bgAudio=new Audio(url);bgAudio.loop=true;bgAudio.volume=0.35;bgAudio.play().catch(()=>{});}catch(e){}
+  if(!url||getSettings().musicVol===0)return;
+  try{bgAudio=new Audio(url);bgAudio.loop=true;bgAudio.volume=getSettings().musicVol;bgAudio.play().catch(()=>{});}catch(e){}
 }
 function testSound(key){
   const el=document.getElementById('snd-'+key);
@@ -560,12 +571,28 @@ function pageChecklist(){
         html+='<div style="display:flex;gap:6px;margin-top:6px"><input id="sub-inp-'+t.id+'" class="inp" style="flex:1;font-size:11px;padding:4px 8px" placeholder="Nueva subtarea..." onkeydown="if(event.key===\'Enter\')doAddSubtask(\''+t.id+'\')" ><button onclick="doAddSubtask(\''+t.id+'\')" class="btn" style="padding:4px 10px">+</button></div>';
         html+='</div></div>';
       }else{
-      html+='<div class="fade-up" style="display:flex;align-items:center;gap:9px;background:'+(t.done?'#091409':'#130820')+';border:1px solid '+(t.done?'#4ade8033':'#ff69b422')+';border-radius:10px;padding:9px 11px;animation-delay:'+(i*40)+'ms"><div onclick="doToggleTask(\''+t.id+'\')" style="width:22px;height:22px;border-radius:4px;flex-shrink:0;cursor:pointer;border:2px solid '+(t.done?'#4ade80':'#ff69b4')+';background:'+(t.done?'#4ade80':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#0d0618;font-weight:bold">'+(t.done?'✓':'')+'</div><span style="flex:1;font-size:13px;color:'+(t.done?'#6b7280':'#f0d6ff')+';text-decoration:'+(t.done?'line-through':'none')+'">'+esc(t.title)+'</span><span class="pf" style="font-size:7px;padding:3px 7px;background:#fbbf2422;border:1px solid #fbbf2444;border-radius:20px;color:#fbbf24;flex-shrink:0">⭐'+t.pts+'</span><button onclick="doDeleteTask(\''+t.id+'\')" style="background:none;border:none;cursor:pointer;color:#444;font-size:14px;flex-shrink:0;padding:0 2px">🗑️</button></div>'
+      html+='<div class="fade-up" style="display:flex;align-items:center;gap:9px;background:'+(t.done?'#091409':'#130820')+';border:1px solid '+(t.done?'#4ade8033':'#ff69b422')+';border-radius:10px;padding:9px 11px;animation-delay:'+(i*40)+'ms"><div onclick="doToggleTask(\''+t.id+'\')" style="width:22px;height:22px;border-radius:4px;flex-shrink:0;cursor:pointer;border:2px solid '+(t.done?'#4ade80':'#ff69b4')+';background:'+(t.done?'#4ade80':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#0d0618;font-weight:bold">'+(t.done?'✓':'')+'</div><span style="flex:1;font-size:13px;color:'+(t.done?'#6b7280':'#f0d6ff')+';text-decoration:'+(t.done?'line-through':'none')+'">'+esc(t.title)+'</span><span class="pf" style="font-size:7px;padding:3px 7px;background:#fbbf2422;border:1px solid #fbbf2444;border-radius:20px;color:#fbbf24;flex-shrink:0">⭐'+t.pts+'</span><button onclick="doDeleteTask(\''+t.id+'\')" style="background:none;border:none;cursor:pointer;color:#444;font-size:14px;flex-shrink:0;padding:0 2px">🗑️</button>'+( isTaskSaved(t) ? '<button onclick="doUnsaveTask(\\\''+getSavedMatch(t).id+'\\\')" style="background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px">🔖</button>' : '<button onclick="doSaveTask(\\\''+t.id+'\\\')" style="background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px">💾</button>' )+'</div>'
       }
 ;
     });
   }
   html+='</div>';
+  const _bank=getSavedTasks();
+  if(_bank.length>0){
+    html+='<div style="background:#130820;border:1px solid #fbbf2433;border-radius:12px;padding:12px 14px;margin-top:4px">';
+    html+='<div class="pf" style="font-size:8px;color:#fbbf24;margin-bottom:10px">📌 Banco de tasks</div>';
+    _bank.forEach(s=>{
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #fbbf2411">';
+      if(s.type==='mochila')html+='<span style="font-size:13px">🎒</span>';
+      html+='<span style="flex:1;font-size:12px;color:#f0d6ff">'+esc(s.title)+'</span>';
+      html+='<span class="pf" style="font-size:6px;padding:2px 6px;background:#fbbf2422;border:1px solid #fbbf2444;border-radius:20px;color:#fbbf24">⭐'+s.pts+'</span>';
+      html+='<button onclick="doAddFromBank(\\\'\'+s.id+\'\\\')" class="btn" style="padding:3px 10px;font-size:11px">+</button>';
+      html+='<button onclick="doUnsaveTask(\\\'\'+s.id+\'\\\')" style="background:none;border:none;cursor:pointer;color:#444;font-size:13px;padding:0">&#128465;</button>';
+      html+='</div>';
+    });
+    html+='</div>';
+  }
+
   const ptsBtns=PTS.map(p=>'<button onclick="S.selPts='+p+';renderPtsButtons()" style="border:1px solid '+(S.selPts===p?'#ff69b4':'#ff69b433')+';border-radius:6px;background:'+(S.selPts===p?'#ff69b4':'transparent')+';color:'+(S.selPts===p?'white':'#ff69b4')+';padding:4px 7px;cursor:pointer;font-size:11px;font-family:\'Press Start 2P\',monospace">'+p+'</button>').join('');
   html+='<div style="background:#130820;border:1px solid #ff69b444;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px"><div class="pf" style="font-size:8px;color:#ff69b4">➕ Nueva tarea</div><input id="new-task-inp" class="inp" placeholder="Nombre de la tarea..." onkeydown="if(event.key===\'Enter\')doAddTask()"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="pf" style="font-size:7px;color:#c084fc;flex-shrink:0">Puntos:</span><div id="pts-buttons" style="display:flex;gap:4px;flex-wrap:wrap">'+ptsBtns+'</div><button onclick="S.mochilaMode=!S.mochilaMode;render()" style="border:1px solid #60a5fa;border-radius:6px;background:'+(S.mochilaMode?'#60a5fa':'transparent')+';color:'+(S.mochilaMode?'#0d0618':'#60a5fa')+';padding:4px 8px;cursor:pointer;font-size:14px" title="Mochila">&#127890;</button></div><button class="btn" onclick="doAddTask()">Añadir tarea</button></div></div>';
   return html;
@@ -1052,7 +1079,8 @@ function pageMain(){
     +'<div style="background:#1e1040;border-radius:10px;width:62px;height:5px;overflow:hidden">'
     +'<div style="width:'+_xpPct+'%;height:100%;background:linear-gradient(90deg,#3b82f6,#60a5fa);border-radius:10px;transition:width .4s"></div>'
     +'</div></div></div>';
-  const muteBtn=hasBgMusic?'<button id="mute-btn" onclick="toggleMute()" style="background:none;border:1px solid #a78bfa44;border-radius:6px;color:#a78bfa;cursor:pointer;padding:4px 8px;font-size:14px">'+(S.muted?'\ud83d\udd07':'\ud83d\udd0a')+'</button>':'';
+  const _sv=getSettings();
+  const muteBtn='<button onclick="toggleSettings()" style="background:none;border:1px solid #a78bfa44;border-radius:6px;color:#a78bfa;cursor:pointer;padding:4px 8px;font-size:14px">⚙️</button>'+'<div id="settings-panel" style="display:'+(S.settingsOpen?'flex':'none')+';position:fixed;top:54px;right:8px;z-index:300;background:#130820;border:1px solid #a78bfa44;border-radius:12px;padding:12px 16px;flex-direction:column;gap:10px;min-width:210px;box-shadow:0 4px 24px #0009"><div style=\"display:flex;align-items:center;gap:10px\"><span style=\"font-size:15px\">🎵</span><span class=\"pf\" style=\"font-size:7px;color:#a78bfa;flex-shrink:0;width:44px\">Música</span><input type=\"range\" min=\"0\" max=\"1\" step=\"0.05\" value=\"'+_sv.musicVol+'\" oninput=\"updateMusicVol(this.value)\" style=\"flex:1;accent-color:#a78bfa\"></div><div style=\"display:flex;align-items:center;gap:10px\"><span style=\"font-size:15px\">🔔</span><span class=\"pf\" style=\"font-size:7px;color:#60a5fa;flex-shrink:0;width:44px\">Efectos</span><input type=\"range\" min=\"0\" max=\"1\" step=\"0.05\" value=\"'+_sv.sfxVol+'\" oninput=\"updateSfxVol(this.value)\" style=\"flex:1;accent-color:#60a5fa\"></div></div>';
   let pageContent='';
   if(S.page==='checklist')pageContent=pageChecklist();
   else if(S.page==='tienda')pageContent=pageTienda();
@@ -1725,11 +1753,31 @@ function doLogin(){
   if(lerr){lerr.textContent='Contraseña incorrecta 💔';lerr.style.display='block'}
 }
 
+function getSavedTasks(){return ud().taskBank||(ud().taskBank=[],ud().taskBank);}
+function isTaskSaved(t){return getSavedTasks().some(s=>s.title===t.title&&s.pts===t.pts&&(s.type||'')===(t.type||''));}
+function getSavedMatch(t){return getSavedTasks().find(s=>s.title===t.title&&s.pts===t.pts&&(s.type||'')===(t.type||''));}
+function doSaveTask(taskId){
+  const t=getMyTasks().find(t=>t.id===taskId);if(!t||isTaskSaved(t))return;
+  getSavedTasks().push({id:uid(),title:t.title,pts:t.pts,type:t.type||'',subtasks:t.subtasks?JSON.parse(JSON.stringify(t.subtasks)):[]});
+  save();render();
+}
+function doUnsaveTask(savedId){
+  ud().taskBank=(ud().taskBank||[]).filter(s=>s.id!==savedId);
+  save();render();
+}
+function doAddFromBank(savedId){
+  const s=getSavedTasks().find(s=>s.id===savedId);if(!s)return;
+  const newTask={id:uid(),title:s.title,pts:s.pts,done:false};
+  if(s.type==='mochila'){newTask.type='mochila';newTask.subtasks=(s.subtasks||[]).map(st=>({...st,id:uid(),done:false}));}
+  getMyTasks().push(newTask);
+  playSound('addTask');save();render();
+}
+
 function doAddSubtask(taskId){const inp=document.getElementById('sub-inp-'+taskId);if(!inp||!inp.value.trim())return;const t=getMyTasks().find(t=>t.id===taskId);if(!t)return;if(!t.subtasks)t.subtasks=[];t.subtasks.push({id:uid(),title:inp.value.trim(),done:false});inp.value='';save();const el=document.getElementById('subl-'+taskId);if(el)el.innerHTML=renderSubtasks(taskId,t.subtasks);}
 function doToggleSubtask(taskId,subId){const t=getMyTasks().find(t=>t.id===taskId);if(!t||!t.subtasks)return;const s=t.subtasks.find(s=>s.id===subId);if(!s)return;s.done=!s.done;save();const el=document.getElementById('subl-'+taskId);if(el)el.innerHTML=renderSubtasks(taskId,t.subtasks);}
 function doDeleteSubtask(taskId,subId){const t=getMyTasks().find(t=>t.id===taskId);if(!t||!t.subtasks)return;t.subtasks=t.subtasks.filter(s=>s.id!==subId);save();const el=document.getElementById('subl-'+taskId);if(el)el.innerHTML=renderSubtasks(taskId,t.subtasks);}
 function toggleMochila(taskId){S.openMochilas[taskId]=!S.openMochilas[taskId];const el=document.getElementById('sub-panel-'+taskId);if(el)el.style.display=S.openMochilas[taskId]?'block':'none';}
-function renderSubtasks(taskId,subs){if(!subs||!subs.length)return '<div class="pf" style="font-size:6px;color:#555;padding:4px 0">Sin subtareas</div>';return subs.map(function(s){return '<div style="display:flex;align-items:center;gap:6px;padding:3px 0"><div onclick="doToggleSubtask(\''+taskId+'\',\''+s.id+'\')" style="width:16px;height:16px;border-radius:3px;flex-shrink:0;cursor:pointer;border:2px solid '+(s.done?'#60a5fa':'#60a5fa55')+';background:'+(s.done?'#60a5fa':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:9px;color:#0d0618">'+(s.done?'&#10003;':'')+'</div><span style="flex:1;font-size:12px;color:'+(s.done?'#6b7280':'#d1d5db')+';text-decoration:'+(s.done?'line-through':'none')+'">'+esc(s.title)+'</span><button onclick="doDeleteSubtask(\''+taskId+'\',\''+s.id+'\')" style="background:none;border:none;cursor:pointer;color:#444;font-size:11px;padding:0">&#128465;</button></div>';}).join('');}
+function renderSubtasks(taskId,subs){if(!subs||!subs.length)return '<div class="pf" style="font-size:6px;color:#555;padding:4px 0">Sin subtareas</div>';return subs.map(function(s){return '<div style="display:flex;align-items:center;gap:6px;padding:3px 0"><div onclick="doToggleSubtask(\''+taskId+'\',\''+s.id+'\')" style="width:16px;height:16px;border-radius:3px;flex-shrink:0;cursor:pointer;border:2px solid '+(s.done?'#60a5fa':'#60a5fa55')+';background:'+(s.done?'#60a5fa':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:9px;color:#0d0618">'+(s.done?'&#10003;':'')+'</div><span style="flex:1;font-size:12px;color:'+(s.done?'#6b7280':'#d1d5db')+';text-decoration:'+(s.done?'line-through':'none')+'">'+esc(s.title)+'</span><button onclick="doDeleteSubtask(\''+taskId+'\',\''+s.id+'\')" style="background:none;border:none;cursor:pointer;color:#444;font-size:11px;padding:0">&#128465;</button>'+( isTaskSaved(t) ? '<button onclick="doUnsaveTask(\\\''+getSavedMatch(t).id+'\\\')" style="background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px">🔖</button>' : '<button onclick="doSaveTask(\\\''+t.id+'\\\')" style="background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px">💾</button>' )+'</div>';}).join('');}
 
 function doAddTask(){
   const inp=document.getElementById('new-task-inp');
