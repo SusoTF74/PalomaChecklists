@@ -117,7 +117,7 @@ const SOBRES={
   mega:{lbl:'Megasobre ✨',cost:300,n:5,icon:'🌟',bc:'#fbbf24',gr:'linear-gradient(135deg,#92400e,#fbbf24)',probs:{comun:15,poco_comun:20,rara:25,epica:25,legendaria:15},epic:true}
 };
 const RANK_DEFS=[['rankBronze','🥉 Icono Bronce (nv. 1-24)'],['rankSilver','🥈 Icono Plata (nv. 25-49)'],['rankGold','🥇 Icono Oro (nv. 50-74)'],['rankPlatinum','💠 Icono Platino (nv. 75-99)'],['rankDiamond','💎 Icono Diamante (nv. 100+)'],['lockedAchImage','🔒 Imagen fondo logros bloqueados']];
-const SND_DEFS=[['bgMusic','🎵 Música de fondo (bucle)'],['addTask','✅ Añadir tarea'],['completeTask','✓ Completar tarea'],['requestTrade','📤 Enviar intercambio'],['acceptTrade','🤝 Aceptar intercambio'],['openPack','📦 Abrir sobre'],['comun','⬜ Revelar carta Común'],['poco_comun','💙 Revelar carta Poco Común'],['rara','💚 Revelar carta Rara'],['epica','💜 Revelar carta Épica'],['legendaria','⭐ Revelar carta Legendaria'],['toque','🔔 Recibir un toque'],['levelUp','🎵 Sonido Level Up'],['achievement','🏆 Desbloquear logro'],['eventPlus','➕ Evento: subir'],['eventMinus','➖ Evento: bajar']];
+const SND_DEFS=[['bgMusic','🎵 Música de fondo (bucle)'],['addTask','✅ Añadir tarea'],['completeTask','✓ Completar tarea'],['requestTrade','📤 Enviar intercambio'],['acceptTrade','🤝 Aceptar intercambio'],['openPack','📦 Abrir sobre'],['comun','⬜ Revelar carta Común'],['poco_comun','💙 Revelar carta Poco Común'],['rara','💚 Revelar carta Rara'],['epica','💜 Revelar carta Épica'],['legendaria','⭐ Revelar carta Legendaria'],['toque','🔔 Recibir un toque'],['levelUp','🎵 Sonido Level Up'],['achievement','🏆 Desbloquear logro'],['eventPlus','➕ Evento: subir'],['eventMinus','➖ Evento: bajar'],['counterAdd','➕ Añadir carta (intercambio/queme)'],['counterRemove','➖ Quitar carta del intercambio'],['burnCards','🔥 Quemar cartas'],['counterTrade','✨ Intercambio de rareza']];
 
 // ─── STATE ─────────────────────────────────────────────────────────────────
 let S={user:null,page:'checklist',db:null,timer:'--:--:--',selPts:10,pack:null,inspect:null,myCard:null,thCard:null,rarFilt:'all',adminEditId:null,showImport:false,adminRarity:'comun',muted:false,loading:true,inspectAch:null,showOtherAchs:false,checklistMode:'daily',otroChecklistMode:'daily',weeklyTimer:'--d --:--:--',monthlyTimer:'--d --:--:--',albumPage:0,editSlotPage:null,mochilaMode:false,openMochilas:{},viewOtherEvt:null,settingsOpen:false,counterSlots:{poco_comun:[],rara:[],epica:[],legendaria:[]},counterOpen:{poco_comun:false,rara:false,epica:false,legendaria:false},burnSel:{},counterReveal:null};
@@ -1992,12 +1992,13 @@ function doCounterAdd(r,cardId){
   const col=ud().col||{};
   const used=slots.filter(s=>s===cardId).length;
   const avail=Math.max(0,(col[cardId]||0)-1);
-  if(used<avail&&slots.length<COUNTER_COST[r]){slots.push(cardId);}
+  if(used<avail&&slots.length<COUNTER_COST[r]){slots.push(cardId);playSound('counterAdd');}
   render();
 }
 function doCounterRemove(r,idx){
   if(!S.counterSlots[r])return;
   S.counterSlots[r].splice(idx,1);
+  playSound('counterRemove');
   render();
 }
 function doCounterTrade(r){
@@ -2014,8 +2015,12 @@ function doCounterTrade(r){
   const won=pool[Math.floor(Math.random()*pool.length)];
   col[won.id]=(col[won.id]||0)+1;
   ud().tradesCompleted=(ud().tradesCompleted||0)+1;
+  const _CXPMAP={poco_comun:25,rara:50,epica:75,legendaria:100};
+  const _cxp=_CXPMAP[r]||0;
+  if(_cxp>0){const _oLvC=getLevel(ud().xp||0);gainXP(_cxp);}
   S.counterSlots[r]=[];
   S.counterReveal={card:won};
+  playSound('counterTrade');
   save();
   setTimeout(checkAchievements,500);
   render();
@@ -2042,6 +2047,7 @@ function doBurnCards(){
   }
   S.burnSel={};
   if(totalXp>0){gainXP(totalXp);}
+  playSound('burnCards');
   save();render();
 }
 
