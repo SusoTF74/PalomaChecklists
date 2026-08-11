@@ -729,11 +729,13 @@ function pageIntercambios(){
       for(let i=0;i<cost;i++){
         const slotCard=slots[i]?(S.db.cards||[]).find(function(c){return c.id===slots[i];}):null;
         if(slotCard){
-          html+='<div onclick="doCounterRemove(\''+r+'\','+i+')" style="cursor:pointer;border:2px solid '+rc.b+';border-radius:6px;overflow:hidden;width:46px">';
+          html+='<div onclick="doCounterRemove(\''+r+'\','+i+')" style="cursor:pointer;position:relative;border:2px solid '+rc.b+';border-radius:8px;overflow:hidden;width:64px;height:82px">';
+          html+='<div style="width:92px;transform:scale(0.695);transform-origin:top left;position:absolute;top:0;left:0">';
           html+=cardHTMLSm(slotCard,0);
-          html+='<div style="text-align:center;background:#0008;font-size:7px;color:#ff8888;padding:1px 0">✕ quitar</div></div>';
+          html+='</div>';
+          html+='<div style="position:absolute;bottom:0;left:0;right:0;background:#cc000099;color:#fff;font-size:9px;text-align:center;padding:2px 0;font-weight:bold">✕ quitar</div></div>';
         }else{
-          html+='<div style="width:46px;border:2px dashed #333;border-radius:6px;background:#0a0a14;display:flex;align-items:center;justify-content:center;font-size:18px;color:#333;padding:8px 0">?</div>';
+          html+='<div style="width:64px;height:82px;border:2px dashed #333;border-radius:6px;background:#0a0a14;display:flex;align-items:center;justify-content:center;font-size:24px;color:#333">?</div>';
         }
       }
       html+='</div>';
@@ -750,10 +752,12 @@ function pageIntercambios(){
           const avail=qty-1-inSlot; // can use qty-1 (keep 1), minus already in slots
           if(avail<=0)return;
           const rc2=R[c.rarity]||R.comun;
-          html+='<div onclick="doCounterAdd(\''+r+'\',\''+c.id+'\')" style="cursor:pointer;position:relative;border:2px solid '+(inSlot>0?rc.b:'#555')+';border-radius:6px;overflow:hidden;width:46px;opacity:'+(slots.length>=cost&&inSlot===0?'0.4':'1')+'">';
+          html+='<div onclick="doCounterAdd(\''+r+'\',\''+c.id+'\')" style="cursor:pointer;position:relative;border:2px solid '+(inSlot>0?rc.b:'#555')+';border-radius:8px;overflow:hidden;width:64px;height:82px;opacity:'+(slots.length>=cost&&inSlot===0?'0.4':'1')+'">';
+          html+='<div style="width:92px;transform:scale(0.695);transform-origin:top left;position:absolute;top:0;left:0">';
           html+=cardHTMLSm(c,0);
-          if(inSlot>0)html+='<div style="position:absolute;top:2px;left:2px;background:'+rc.b+'cc;border-radius:4px;padding:1px 4px;font-size:6px;color:#fff;font-weight:bold">✓'+inSlot+'</div>';
-          if(avail>1)html+='<div class="pf" style="position:absolute;top:2px;right:2px;background:#0009;border-radius:4px;padding:1px 4px;font-size:6px;color:#fff">x'+(avail-inSlot)+'</div>';
+          html+='</div>';
+          if(inSlot>0)html+='<div style="position:absolute;top:2px;left:2px;background:'+rc.b+'dd;border-radius:4px;padding:2px 5px;font-size:8px;color:#fff;font-weight:bold">✓'+inSlot+'</div>';
+          if(avail>0)html+='<div style="position:absolute;top:2px;right:2px;background:#000a;border-radius:4px;padding:2px 4px;font-size:8px;color:#fff">x'+avail+'</div>';
           html+='</div>';
         });
         html+='</div>';
@@ -788,9 +792,13 @@ function pageIntercambios(){
       if(maxBurn<=0)return;
       const curBurn=S.burnSel[c.id]||0;
       const rc=R[c.rarity]||R.comun;
-      html+='<div onclick="toggleBurnCard(\''+c.id+'\')" style="cursor:pointer;position:relative;border:2px solid '+(curBurn>0?'#ff6b6b':'#555')+';border-radius:6px;overflow:hidden;width:46px;box-shadow:'+(curBurn>0?'0 0 8px #ff6b6b88':'none')+'">';
+      html+='<div onclick="toggleBurnCard(\''+c.id+'\')" style="cursor:pointer;position:relative;border:2px solid '+(curBurn>0?'#ff6b6b':'#555')+';border-radius:8px;overflow:hidden;width:64px;height:82px;box-shadow:'+(curBurn>0?'0 0 8px #ff6b6b88':'none')+'">';
+      html+='<div style="width:92px;transform:scale(0.695);transform-origin:top left;position:absolute;top:0;left:0">';
       html+=cardHTMLSm(c,0);
-      html+='<div style="text-align:center;background:#0008;font-size:6px;color:'+(curBurn>0?'#ff6b6b':'#888')+';padding:1px 0">'+(curBurn>0?'🔥 x'+curBurn+' +'+curBurn*(_BXP[c.rarity]||0)+'xp':'max '+maxBurn)+'</div></div>';
+      html+='</div>';
+      html+='<div style="position:absolute;bottom:0;left:0;right:0;text-align:center;background:'+(curBurn>0?'#cc0000bb':'#0008')+';font-size:8px;color:'+(curBurn>0?'#fff':'#888')+';padding:2px 0;font-weight:'+(curBurn>0?'bold':'normal')+'">'+(curBurn>0?'🔥x'+curBurn+' +'+curBurn*(_BXP[c.rarity]||0)+'xp':'x'+maxBurn)+'</div>';
+      if(maxBurn>1)html+='<div style="position:absolute;top:2px;right:2px;background:#000a;border-radius:4px;padding:2px 4px;font-size:8px;color:#fff">x'+maxBurn+'</div>';
+      html+='</div>';
     });
     html+='</div>';
 
