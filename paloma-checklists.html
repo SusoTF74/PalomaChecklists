@@ -757,7 +757,7 @@ function pageIntercambios(){
           html+=cardHTMLSm(c,0);
           html+='</div>';
           if(inSlot>0)html+='<div style="position:absolute;top:2px;left:2px;background:'+rc.b+'dd;border-radius:4px;padding:2px 5px;font-size:8px;color:#fff;font-weight:bold">✓'+inSlot+'</div>';
-          if(avail>0)html+='<div style="position:absolute;top:2px;right:2px;background:#000a;border-radius:4px;padding:2px 4px;font-size:8px;color:#fff">x'+avail+'</div>';
+          if(avail>0)html+='<div style="position:absolute;top:2px;right:2px;background:#ff69b4;border-radius:20px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:bold;color:#fff;padding:0 3px">x'+avail+'</div>';
           html+='</div>';
         });
         html+='</div>';
@@ -796,8 +796,8 @@ function pageIntercambios(){
       html+='<div style="width:92px;transform:scale(0.695);transform-origin:top left;position:absolute;top:0;left:0">';
       html+=cardHTMLSm(c,0);
       html+='</div>';
-      html+='<div style="position:absolute;bottom:0;left:0;right:0;text-align:center;background:'+(curBurn>0?'#cc0000bb':'#0008')+';font-size:8px;color:'+(curBurn>0?'#fff':'#888')+';padding:2px 0;font-weight:'+(curBurn>0?'bold':'normal')+'">'+(curBurn>0?'🔥x'+curBurn+' +'+curBurn*(_BXP[c.rarity]||0)+'xp':'x'+maxBurn)+'</div>';
-      if(maxBurn>1)html+='<div style="position:absolute;top:2px;right:2px;background:#000a;border-radius:4px;padding:2px 4px;font-size:8px;color:#fff">x'+maxBurn+'</div>';
+      if(maxBurn>0)html+='<div style="position:absolute;top:2px;right:2px;background:#ff69b4;border-radius:20px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:bold;color:#fff;padding:0 3px">x'+maxBurn+'</div>';
+      if(curBurn>0)html+='<div style="position:absolute;top:2px;left:2px;background:#cc0000dd;border-radius:4px;padding:2px 4px;font-size:7px;color:#fff;font-weight:bold">🔥x'+curBurn+'</div>';
       html+='</div>';
     });
     html+='</div>';
