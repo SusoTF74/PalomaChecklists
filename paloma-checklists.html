@@ -750,7 +750,6 @@ function pageIntercambios(){
           const avail=qty-1-inSlot; // can use qty-1 (keep 1), minus already in slots
           if(avail<=0)return;
           const rc2=R[c.rarity]||R.comun;
-          const selected=slots.includes(c.id);
           html+='<div onclick="doCounterAdd(\''+r+'\',\''+c.id+'\')" style="cursor:pointer;position:relative;border:2px solid '+(inSlot>0?rc.b:'#555')+';border-radius:6px;overflow:hidden;width:46px;opacity:'+(slots.length>=cost&&inSlot===0?'0.4':'1')+'">';
           html+=cardHTMLSm(c,0);
           if(inSlot>0)html+='<div style="position:absolute;top:2px;left:2px;background:'+rc.b+'cc;border-radius:4px;padding:1px 4px;font-size:6px;color:#fff;font-weight:bold">✓'+inSlot+'</div>';
@@ -789,11 +788,9 @@ function pageIntercambios(){
       if(maxBurn<=0)return;
       const curBurn=S.burnSel[c.id]||0;
       const rc=R[c.rarity]||R.comun;
-      html+='<div onclick="toggleBurnCard(\''+c.id+'\')" style="cursor:pointer;position:relative;border:2px solid '+(sel?'#ff6b6b':'#333')+';border-radius:6px;overflow:hidden;box-shadow:'+(sel?'0 0 8px #ff6b6b88':'none')+'">';
-      html+=cardHTMLSm(c,qty);
-      if(avail>1)html+='<div class="pf" style="position:absolute;top:2px;right:2px;background:#0009;border-radius:4px;padding:1px 4px;font-size:6px;color:#fff">x'+avail+'</div>';
-      html+='<div style="position:absolute;bottom:0;left:0;right:0;text-align:center;background:#0008;font-size:6px;color:'+(curBurn>0?'#ff6b6b':'#888')+'">'+(curBurn>0?'🔥x'+curBurn+' +'+curBurn*(_BXP[c.rarity]||0)+'xp':'✕ '+maxBurn)+'</div>';
-      html+='</div>';
+      html+='<div onclick="toggleBurnCard(\''+c.id+'\')" style="cursor:pointer;position:relative;border:2px solid '+(curBurn>0?'#ff6b6b':'#555')+';border-radius:6px;overflow:hidden;width:46px;box-shadow:'+(curBurn>0?'0 0 8px #ff6b6b88':'none')+'">';
+      html+=cardHTMLSm(c,0);
+      html+='<div style="text-align:center;background:#0008;font-size:6px;color:'+(curBurn>0?'#ff6b6b':'#888')+';padding:1px 0">'+(curBurn>0?'🔥 x'+curBurn+' +'+curBurn*(_BXP[c.rarity]||0)+'xp':'max '+maxBurn)+'</div></div>';
     });
     html+='</div>';
 
