@@ -729,11 +729,11 @@ function pageIntercambios(){
       for(let i=0;i<cost;i++){
         const slotCard=slots[i]?(S.db.cards||[]).find(function(c){return c.id===slots[i];}):null;
         if(slotCard){
-          html+='<div onclick="doCounterSelect(\''+r+'\',\''+slotCard.id+'\')" style="cursor:pointer;position:relative;border:2px solid '+rc.b+';border-radius:6px;overflow:hidden;width:44px;height:62px">';
-          html+=cardHTMLSm(slotCard,0).replace('style="','style="width:44px;height:62px;');
-          html+='</div>';
+          html+='<div onclick="doCounterRemove(\''+r+'\','+i+')" style="cursor:pointer;border:2px solid '+rc.b+';border-radius:6px;overflow:hidden;width:46px">';
+          html+=cardHTMLSm(slotCard,0);
+          html+='<div style="text-align:center;background:#0008;font-size:7px;color:#ff8888;padding:1px 0">✕ quitar</div></div>';
         }else{
-          html+='<div style="width:44px;height:62px;border:2px dashed #333;border-radius:6px;background:#0a0a14;display:flex;align-items:center;justify-content:center;font-size:18px;color:#333">?</div>';
+          html+='<div style="width:46px;border:2px dashed #333;border-radius:6px;background:#0a0a14;display:flex;align-items:center;justify-content:center;font-size:18px;color:#333;padding:8px 0">?</div>';
         }
       }
       html+='</div>';
@@ -751,9 +751,10 @@ function pageIntercambios(){
           if(avail<=0)return;
           const rc2=R[c.rarity]||R.comun;
           const selected=slots.includes(c.id);
-          html+='<div onclick="doCounterSelect(\''+r+'\',\''+c.id+'\')" style="cursor:pointer;position:relative;border:2px solid '+(selected?rc.b:'#333')+';border-radius:6px;overflow:hidden;opacity:'+(slots.length>=cost&&!selected?'0.4':'1')+'">';
-          html+=cardHTMLSm(c,qty);
-          if(avail>1)html+='<div class="pf" style="position:absolute;top:2px;right:2px;background:#0009;border-radius:4px;padding:1px 4px;font-size:6px;color:#fff">x'+avail+'</div>';
+          html+='<div onclick="doCounterAdd(\''+r+'\',\''+c.id+'\')" style="cursor:pointer;position:relative;border:2px solid '+(inSlot>0?rc.b:'#555')+';border-radius:6px;overflow:hidden;width:46px;opacity:'+(slots.length>=cost&&inSlot===0?'0.4':'1')+'">';
+          html+=cardHTMLSm(c,0);
+          if(inSlot>0)html+='<div style="position:absolute;top:2px;left:2px;background:'+rc.b+'cc;border-radius:4px;padding:1px 4px;font-size:6px;color:#fff;font-weight:bold">✓'+inSlot+'</div>';
+          if(avail>1)html+='<div class="pf" style="position:absolute;top:2px;right:2px;background:#0009;border-radius:4px;padding:1px 4px;font-size:6px;color:#fff">x'+(avail-inSlot)+'</div>';
           html+='</div>';
         });
         html+='</div>';
@@ -777,21 +778,21 @@ function pageIntercambios(){
   }else{
     let _burnXp=0;
     const _BXP={comun:10,poco_comun:25,rara:50,epica:100,legendaria:500};
-    _allDups.forEach(function(c){if(S.burnSel[c.id])_burnXp+=_BXP[c.rarity]||0;});
-    const _burnCount=Object.values(S.burnSel).filter(Boolean).length;
+    let _burnCount=0;
+    _allDups.forEach(function(c){const cnt=S.burnSel[c.id]||0;_burnXp+=cnt*(_BXP[c.rarity]||0);_burnCount+=cnt;});
 
     html+='<div class="pf" style="font-size:7px;color:#888;margin-bottom:8px">Toca las repetidas que quieras quemar:</div>';
     html+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">';
     _allDups.forEach(function(c){
       const qty=_col[c.id]||0;
-      const avail=qty-1; // keep 1
-      if(avail<=0)return;
-      const sel=S.burnSel[c.id];
+      const maxBurn=qty-1;
+      if(maxBurn<=0)return;
+      const curBurn=S.burnSel[c.id]||0;
       const rc=R[c.rarity]||R.comun;
       html+='<div onclick="toggleBurnCard(\''+c.id+'\')" style="cursor:pointer;position:relative;border:2px solid '+(sel?'#ff6b6b':'#333')+';border-radius:6px;overflow:hidden;box-shadow:'+(sel?'0 0 8px #ff6b6b88':'none')+'">';
       html+=cardHTMLSm(c,qty);
       if(avail>1)html+='<div class="pf" style="position:absolute;top:2px;right:2px;background:#0009;border-radius:4px;padding:1px 4px;font-size:6px;color:#fff">x'+avail+'</div>';
-      if(sel)html+='<div style="position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:8px;color:#ff6b6b;font-weight:bold">🔥+'+(_BXP[c.rarity]||0)+'xp</div>';
+      html+='<div style="position:absolute;bottom:0;left:0;right:0;text-align:center;background:#0008;font-size:6px;color:'+(curBurn>0?'#ff6b6b':'#888')+'">'+(curBurn>0?'🔥x'+curBurn+' +'+curBurn*(_BXP[c.rarity]||0)+'xp':'✕ '+maxBurn)+'</div>';
       html+='</div>';
     });
     html+='</div>';
@@ -1980,19 +1981,28 @@ function toggleCounterPanel(r){
   S.counterOpen[r]=!S.counterOpen[r];
   render();
 }
-function doCounterSelect(r,cardId){
+function doCounterAdd(r,cardId){
   if(!S.counterSlots[r])S.counterSlots[r]=[];
   const slots=S.counterSlots[r];
-  const idx=slots.indexOf(cardId);
-  if(idx>=0){slots.splice(idx,1);}
-  else if(slots.length<COUNTER_COST[r]){slots.push(cardId);}
+  const col=ud().col||{};
+  const used=slots.filter(s=>s===cardId).length;
+  const avail=Math.max(0,(col[cardId]||0)-1);
+  if(used<avail&&slots.length<COUNTER_COST[r]){slots.push(cardId);}
+  render();
+}
+function doCounterRemove(r,idx){
+  if(!S.counterSlots[r])return;
+  S.counterSlots[r].splice(idx,1);
   render();
 }
 function doCounterTrade(r){
   const slots=S.counterSlots[r]||[];
   if(slots.length<COUNTER_COST[r])return;
   const col=ud().col;
-  for(const id of slots){if((col[id]||0)<2)return;}
+  // Verify counts (accounting for duplicates in slots)
+  const needed={};
+  for(const id of slots){needed[id]=(needed[id]||0)+1;}
+  for(const [id,cnt] of Object.entries(needed)){if((col[id]||0)-cnt<1)return;}
   for(const id of slots){col[id]--;}
   const pool=(S.db.cards||[]).filter(c=>c.rarity===r);
   if(!pool.length)return;
@@ -2007,18 +2017,23 @@ function doCounterTrade(r){
 }
 function closeCtrReveal(){S.counterReveal=null;render();}
 function toggleBurnCard(cardId){
-  S.burnSel[cardId]=!S.burnSel[cardId];
+  const col=ud().col||{};
+  const maxBurn=Math.max(0,(col[cardId]||0)-1);
+  const cur=S.burnSel[cardId]||0;
+  S.burnSel[cardId]=cur<maxBurn?cur+1:0;
   render();
 }
 function doBurnCards(){
   const col=ud().col;
   let totalXp=0;
-  for(const [id,sel] of Object.entries(S.burnSel)){
-    if(!sel)continue;
+  for(const [id,cnt] of Object.entries(S.burnSel)){
+    if(!cnt)continue;
     const c=(S.db.cards||[]).find(c=>c.id===id);
-    if(!c||(col[id]||0)<2)continue;
-    col[id]--;
-    totalXp+=BURN_XP[c.rarity]||0;
+    if(!c)continue;
+    const maxBurn=Math.max(0,(col[id]||0)-1);
+    const burn=Math.min(cnt,maxBurn);
+    col[id]=(col[id]||0)-burn;
+    totalXp+=burn*(BURN_XP[c.rarity]||0);
   }
   S.burnSel={};
   if(totalXp>0){gainXP(totalXp);}
