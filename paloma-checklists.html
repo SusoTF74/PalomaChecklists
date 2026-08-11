@@ -120,7 +120,7 @@ const RANK_DEFS=[['rankBronze','🥉 Icono Bronce (nv. 1-24)'],['rankSilver','�
 const SND_DEFS=[['bgMusic','🎵 Música de fondo (bucle)'],['addTask','✅ Añadir tarea'],['completeTask','✓ Completar tarea'],['requestTrade','📤 Enviar intercambio'],['acceptTrade','🤝 Aceptar intercambio'],['openPack','📦 Abrir sobre'],['comun','⬜ Revelar carta Común'],['poco_comun','💙 Revelar carta Poco Común'],['rara','💚 Revelar carta Rara'],['epica','💜 Revelar carta Épica'],['legendaria','⭐ Revelar carta Legendaria'],['toque','🔔 Recibir un toque'],['levelUp','🎵 Sonido Level Up'],['achievement','🏆 Desbloquear logro'],['eventPlus','➕ Evento: subir'],['eventMinus','➖ Evento: bajar']];
 
 // ─── STATE ─────────────────────────────────────────────────────────────────
-let S={user:null,page:'checklist',db:null,timer:'--:--:--',selPts:10,pack:null,inspect:null,myCard:null,thCard:null,rarFilt:'all',adminEditId:null,showImport:false,adminRarity:'comun',muted:false,loading:true,inspectAch:null,showOtherAchs:false,checklistMode:'daily',otroChecklistMode:'daily',weeklyTimer:'--d --:--:--',monthlyTimer:'--d --:--:--',albumPage:0,editSlotPage:null,mochilaMode:false,openMochilas:{},viewOtherEvt:null,settingsOpen:false};
+let S={user:null,page:'checklist',db:null,timer:'--:--:--',selPts:10,pack:null,inspect:null,myCard:null,thCard:null,rarFilt:'all',adminEditId:null,showImport:false,adminRarity:'comun',muted:false,loading:true,inspectAch:null,showOtherAchs:false,checklistMode:'daily',otroChecklistMode:'daily',weeklyTimer:'--d --:--:--',monthlyTimer:'--d --:--:--',albumPage:0,editSlotPage:null,mochilaMode:false,openMochilas:{},viewOtherEvt:null,settingsOpen:false,counterSlots:{poco_comun:[],rara:[],epica:[],legendaria:[]},counterOpen:{poco_comun:false,rara:false,epica:false,legendaria:false},burnSel:{},counterReveal:null};
 
 // ─── UTILS ─────────────────────────────────────────────────────────────────
 function uid(){return Math.random().toString(36).slice(2,10)}
@@ -692,6 +692,130 @@ function pageIntercambios(){
   const thCardObj=S.thCard?S.db.cards.find(c=>c.id===S.thCard):null;
   const preview=myCardObj&&thCardObj?'<div style="background:#07070f;border-radius:10px;padding:10px;display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;justify-content:center">'+cardHTML(myCardObj,0,true)+'<span class="pf" style="font-size:12px;color:#ff69b4">⇄</span>'+cardHTML(thCardObj,0,true)+'</div>':'';
   html+='<div style="background:#130820;border:1px solid #ff69b422;border-radius:12px;padding:16px"><div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:14px">➕ Nueva oferta</div><div style="margin-bottom:14px"><div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px">1. Tu carta a ofrecer (×2 o más):</div>'+myDupsHTML+'</div><div style="margin-bottom:14px"><div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px">2. Carta que quieres de '+oName+':</div>'+thHasHTML+'</div>'+preview+'<button class="btn" onclick="doSendTrade()" '+(myCardObj&&thCardObj?'':'disabled')+'>Enviar a '+oName+' 📨</button></div></div>';
+
+  // ── Counter trade (rarity upgrade) ────────────────────────────────
+  const _col=ud().col||{};
+  const _LABELS={poco_comun:'Poco Común',rara:'Rara',epica:'Épica',legendaria:'Legendaria'};
+  const _ICONS={poco_comun:'💙',rara:'💚',epica:'💜',legendaria:'⭐'};
+  const _COSTS={poco_comun:5,rara:6,epica:8,legendaria:10};
+  const _SRC={poco_comun:'comun',rara:'poco_comun',epica:'rara',legendaria:'epica'};
+  const _SRC_LBL={comun:'Común',poco_comun:'Poco Común',rara:'Rara',epica:'Épica'};
+
+  html+='<div style="background:#130820;border:1px solid #38bdf844;border-radius:14px;padding:14px;margin-top:16px">';
+  html+='<div class="pf" style="font-size:10px;color:#38bdf8;margin-bottom:12px">🔄 Intercambio de rareza</div>';
+
+  ['poco_comun','rara','epica','legendaria'].forEach(function(r){
+    const srcR=_SRC[r];
+    const cost=_COSTS[r];
+    const slots=S.counterSlots[r]||[];
+    const isOpen=S.counterOpen[r];
+    const srcDups=(S.db.cards||[]).filter(function(c){return c.rarity===srcR&&(_col[c.id]||0)>=2;});
+    const filled=slots.length;
+    const ready=filled>=cost;
+    const rc=R[r]||R.comun;
+
+    html+='<div style="background:#0d0618;border:1px solid '+rc.b+'44;border-radius:10px;margin-bottom:8px">';
+    html+='<div onclick="toggleCounterPanel(\''+r+'\')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer">';
+    html+='<span class="pf" style="font-size:9px;color:'+rc.b+';flex:1">'+_ICONS[r]+' → '+_LABELS[r]+'</span>';
+    html+='<span class="pf" style="font-size:7px;color:#555">'+filled+'/'+cost+' '+_SRC_LBL[srcR]+'</span>';
+    html+='<span style="font-size:11px;color:#555;margin-left:6px">'+(isOpen?'▲':'▼')+'</span>';
+    html+='</div>';
+
+    if(isOpen){
+      html+='<div style="padding:10px 12px;border-top:1px solid '+rc.b+'22">';
+
+      // Slots
+      html+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">';
+      for(let i=0;i<cost;i++){
+        const slotCard=slots[i]?(S.db.cards||[]).find(function(c){return c.id===slots[i];}):null;
+        if(slotCard){
+          html+='<div onclick="doCounterSelect(\''+r+'\',\''+slotCard.id+'\')" style="cursor:pointer;position:relative;border:2px solid '+rc.b+';border-radius:6px;overflow:hidden;width:44px;height:62px">';
+          html+=cardHTMLSm(slotCard,0).replace('style="','style="width:44px;height:62px;');
+          html+='</div>';
+        }else{
+          html+='<div style="width:44px;height:62px;border:2px dashed #333;border-radius:6px;background:#0a0a14;display:flex;align-items:center;justify-content:center;font-size:18px;color:#333">?</div>';
+        }
+      }
+      html+='</div>';
+
+      // Available source cards
+      if(srcDups.length===0){
+        html+='<div class="pf" style="font-size:7px;color:#444;margin-bottom:8px">Sin repetidas de '+_SRC_LBL[srcR]+'</div>';
+      }else{
+        html+='<div class="pf" style="font-size:7px;color:#888;margin-bottom:6px">Tus repetidas de '+_SRC_LBL[srcR]+' (toca para añadir):</div>';
+        html+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">';
+        srcDups.forEach(function(c){
+          const qty=_col[c.id]||0;
+          const inSlot=slots.filter(function(s){return s===c.id;}).length;
+          const avail=qty-1-inSlot; // can use qty-1 (keep 1), minus already in slots
+          if(avail<=0)return;
+          const rc2=R[c.rarity]||R.comun;
+          const selected=slots.includes(c.id);
+          html+='<div onclick="doCounterSelect(\''+r+'\',\''+c.id+'\')" style="cursor:pointer;position:relative;border:2px solid '+(selected?rc.b:'#333')+';border-radius:6px;overflow:hidden;opacity:'+(slots.length>=cost&&!selected?'0.4':'1')+'">';
+          html+=cardHTMLSm(c,qty);
+          if(avail>1)html+='<div class="pf" style="position:absolute;top:2px;right:2px;background:#0009;border-radius:4px;padding:1px 4px;font-size:6px;color:#fff">x'+avail+'</div>';
+          html+='</div>';
+        });
+        html+='</div>';
+      }
+
+      html+='<button class="btn" onclick="doCounterTrade(\''+r+'\')" '+(ready?'':'disabled')+' style="width:100%;background:'+rc.b+(ready?'':'88')+'">';
+      html+='Mejorar a '+_LABELS[r]+' ✨</button>';
+      html+='</div>';
+    }
+    html+='</div>';
+  });
+  html+='</div>';
+
+  // ── Burn duplicates ────────────────────────────────────────────────
+  const _allDups=(S.db.cards||[]).filter(function(c){return(_col[c.id]||0)>=2;});
+  html+='<div style="background:#130820;border:1px solid #ff6b6b44;border-radius:14px;padding:14px;margin-top:12px">';
+  html+='<div class="pf" style="font-size:10px;color:#ff6b6b;margin-bottom:12px">🔥 Quemar repetidas por XP</div>';
+
+  if(_allDups.length===0){
+    html+='<div class="pf" style="font-size:7px;color:#444;text-align:center;padding:16px 0">Sin cartas repetidas</div>';
+  }else{
+    let _burnXp=0;
+    const _BXP={comun:10,poco_comun:25,rara:50,epica:100,legendaria:500};
+    _allDups.forEach(function(c){if(S.burnSel[c.id])_burnXp+=_BXP[c.rarity]||0;});
+    const _burnCount=Object.values(S.burnSel).filter(Boolean).length;
+
+    html+='<div class="pf" style="font-size:7px;color:#888;margin-bottom:8px">Toca las repetidas que quieras quemar:</div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">';
+    _allDups.forEach(function(c){
+      const qty=_col[c.id]||0;
+      const avail=qty-1; // keep 1
+      if(avail<=0)return;
+      const sel=S.burnSel[c.id];
+      const rc=R[c.rarity]||R.comun;
+      html+='<div onclick="toggleBurnCard(\''+c.id+'\')" style="cursor:pointer;position:relative;border:2px solid '+(sel?'#ff6b6b':'#333')+';border-radius:6px;overflow:hidden;box-shadow:'+(sel?'0 0 8px #ff6b6b88':'none')+'">';
+      html+=cardHTMLSm(c,qty);
+      if(avail>1)html+='<div class="pf" style="position:absolute;top:2px;right:2px;background:#0009;border-radius:4px;padding:1px 4px;font-size:6px;color:#fff">x'+avail+'</div>';
+      if(sel)html+='<div style="position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:8px;color:#ff6b6b;font-weight:bold">🔥+'+(_BXP[c.rarity]||0)+'xp</div>';
+      html+='</div>';
+    });
+    html+='</div>';
+
+    if(_burnCount>0){
+      html+='<div class="pf" style="font-size:9px;color:#fbbf24;text-align:center;margin-bottom:8px">🔥 '+_burnCount+' carta'+(  _burnCount>1?'s':'')+' · +'+_burnXp+' XP</div>';
+    }
+    html+='<button class="btn" onclick="doBurnCards()" '+(_burnCount>0?'':'disabled')+' style="width:100%;background:'+(  _burnCount>0?'#ff6b6b':'#ff6b6b44')+'">';
+    html+='🔥 Quemar '+ (_burnCount>0?_burnCount+' carta'+(_burnCount>1?'s':''):'cartas')+'</button>';
+  }
+  html+='</div>';
+
+  // ── Counter reveal overlay ──────────────────────────────────────────
+  if(S.counterReveal){
+    const _rv=S.counterReveal.card;
+    const _rr=R[_rv.rarity]||R.comun;
+    html+='<div class="overlay" onclick="closeCtrReveal()" style="z-index:600">';
+    html+='<div onclick="event.stopPropagation()" style="background:#130820;border:2px solid '+_rr.b+';border-radius:16px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:12px;max-width:280px;animation:stickPulse .5s ease">';
+    html+='<div class="pf" style="font-size:10px;color:'+_rr.b+'">✨ ¡Intercambio completado!</div>';
+    html+=cardHTML(_rv);
+    html+='<button class="btn" onclick="closeCtrReveal()" style="width:100%;background:'+_rr.b+'">¡Genial!</button>';
+    html+='</div></div>';
+  }
+
   return html;
 }
 
@@ -1848,6 +1972,59 @@ function doTrade(tid,accept){
   }
   save();
 }
+const COUNTER_COST={poco_comun:5,rara:6,epica:8,legendaria:10};
+const COUNTER_SRC={poco_comun:'comun',rara:'poco_comun',epica:'rara',legendaria:'epica'};
+const BURN_XP={comun:10,poco_comun:25,rara:50,epica:100,legendaria:500};
+
+function toggleCounterPanel(r){
+  S.counterOpen[r]=!S.counterOpen[r];
+  render();
+}
+function doCounterSelect(r,cardId){
+  if(!S.counterSlots[r])S.counterSlots[r]=[];
+  const slots=S.counterSlots[r];
+  const idx=slots.indexOf(cardId);
+  if(idx>=0){slots.splice(idx,1);}
+  else if(slots.length<COUNTER_COST[r]){slots.push(cardId);}
+  render();
+}
+function doCounterTrade(r){
+  const slots=S.counterSlots[r]||[];
+  if(slots.length<COUNTER_COST[r])return;
+  const col=ud().col;
+  for(const id of slots){if((col[id]||0)<2)return;}
+  for(const id of slots){col[id]--;}
+  const pool=(S.db.cards||[]).filter(c=>c.rarity===r);
+  if(!pool.length)return;
+  const won=pool[Math.floor(Math.random()*pool.length)];
+  col[won.id]=(col[won.id]||0)+1;
+  ud().tradesCompleted=(ud().tradesCompleted||0)+1;
+  S.counterSlots[r]=[];
+  S.counterReveal={card:won};
+  save();
+  setTimeout(checkAchievements,500);
+  render();
+}
+function closeCtrReveal(){S.counterReveal=null;render();}
+function toggleBurnCard(cardId){
+  S.burnSel[cardId]=!S.burnSel[cardId];
+  render();
+}
+function doBurnCards(){
+  const col=ud().col;
+  let totalXp=0;
+  for(const [id,sel] of Object.entries(S.burnSel)){
+    if(!sel)continue;
+    const c=(S.db.cards||[]).find(c=>c.id===id);
+    if(!c||(col[id]||0)<2)continue;
+    col[id]--;
+    totalXp+=BURN_XP[c.rarity]||0;
+  }
+  S.burnSel={};
+  if(totalXp>0){gainXP(totalXp);}
+  save();render();
+}
+
 function doSendTrade(){
   if(!S.myCard||!S.thCard)return;
   const myC=S.db[S.user].col||{},otC=S.db[other()].col||{};
